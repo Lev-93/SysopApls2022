@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #**********************************************************
-##  Ejercicio nro 6 del APL 1 - 1c 2022 - Entrega nro 3
+##  Ejercicio nro 6 del APL 1 - 2c 2022 - Entrega nro 1
 ##  Script: Ejercicio06.sh
 ##
 ##  Integrantes del grupo

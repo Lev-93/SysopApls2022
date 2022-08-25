@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-##  Ejercicio nro 3 del APL 1 - 1c 2022 - Entrega nro 3
+##  Ejercicio nro 3 del APL 1 - 2c 2022 - Entrega nro 1
 ##  Script: Ejercicio03.sh
 ##
 ##  Integrantes del grupo
