@@ -9,48 +9,57 @@
 nombreScript=$(readlink -f $0)
 dir_base=`dirname "$nombreScript"`
 
-validarParametros1() {
+validarParametros() { #directorio -a acciones -s
 	if [ ! -d "$1" ];
 	then
-		return 1
+		echo "Error: \"$1\" no es un directorio"
+		mostrarAyuda
+		exit 1;
 	fi
-	
+
 	if [ ! -r "$1" ];
 	then
-		return 2
+		echo "Error: sin permisos de lectura en directorio a monitorear"
+		mostrarAyuda
+		exit 1;
 	fi
 
 	if [ ! -n "$2" ];
 	then
-		return 3
+		echo "Error, el tercer parametro debería de ser "-a""
+		mostrarAyuda
+		exit 1
 	fi
 
-	return 0;
-}
-
-validarParametros2() {
-	#crear una lista la cual almacena sin las comas cada acción.
-	if [ ! -n "$1" ]; then
-		return 4
+	if [ ! -n "$3" ];
+	then
+		echo "Error, no hay acciones que realizar"
+		mostrarAyuda
+		exit 1
 	fi
 
-	cadena=$1
+	cadena=$3
 	cadena=${cadena//,/" "}
 	#transformar dicha cadena en una lista de acciones.
 	IPS=' '
 	lista=($cadena)
-	if [[ ${#lista[@]} > 4 || ${#lista[@]} < 1 ]]; then
-		return 1
+	if [[ ${#lista[@]} > 4 || ${#lista[@]} < 1 ]];
+	then
+		echo "cantidad de acciones invalida"
+		mostrarAyuda
+		exit 1
 	fi
 
 	inicio=0
-
 	pu=0
 	co=0
 
 	while [ $inicio -ne ${#lista[@]} ];do
-		if [[ "${lista[$inicio]}" != "listar" && "${lista[$inicio]}" != "peso" && "${lista[$inicio]}" != "compilar" && "${lista[$inicio]}" != "publicar" ]]; then
-			return 2
+		if [[ "${lista[$inicio]}" != "listar" && "${lista[$inicio]}" != "peso" && "${lista[$inicio]}" != "compilar" && "${lista[$inicio]}" != "publicar" ]];
+		then
+			echo "acción invalida"
+			mostrarAyuda
+			exit 1
 		fi
 		if [[ "${lista[$inicio]}" == "compilar" ]];
 		then
@@ -58,7 +67,7 @@ validarParametros2() {
 			if [ ! -e "$dir_base/bin" ];
 			then
 				mkdir "$dir_base/bin"
-			fi	
+			fi
 		fi
 		if [[ "${lista[$inicio]}" == "publicar" ]];
 		then
@@ -67,48 +76,46 @@ validarParametros2() {
 		let inicio=$inicio+1
 	done
 
-	if [[ $co == 0 && $pu == 1 ]]; then
-		return 3
+	if [[ $co == 0 && $pu == 1 ]];
+	then
+		echo "Error, no puede haber un publicar y no un compilar"
+		mostrarAyuda
+		exit 1
 	fi
 
-	if [[ $pu == 1 && $2 != "-s" ]];
+	if [[ $pu == 1 && $4 != "-s" ]];
 	then
-		return 5
-	fi
-
-	if [[ $pu == 0 && $2 != "-s" ]];
-	then
-		return 6
+		echo "Error, esta la accion de publicar pero no el parametro -s"
+		mostrarAyuda
+		exit 1
 	fi
 
 	return 0
 }
 
-validarParametros3() {
-	if [[ "$1" != "-s" ]]; then
-		return 1
-	fi
-
-	if [ ! -e "$2" ]; then
+validarDirectorioPublicar() { #directorio destinado a publicar
+	if [ ! -e "$1" ];
+	then
 		return 2
 	fi
 
-	if [ ! -d "$2" ];
+	if [ ! -d "$1" ];
 	then
-		return 3
+		echo "Error: \"$1\" no es un directorio"
+		exit 1
 	fi
 	
-	if [ ! -r "$2" ];
+	if [ ! -r "$1" ];
 	then
-		return 4
+		echo "Error, \"$1\" no tiene permisos de lectura"
+		exit 1
 	fi
 
-	if [ ! -w "$2" ];
+	if [ ! -w "$1" ];
 	then
-		return 5
+		echo "Error, \"$1\" no tiene permisos de escritura"
+		exit 1
 	fi
-
-	return 0
 }
 
 loop() {
@@ -341,14 +348,18 @@ mostrarAyuda() {
 }
 
 posi="$1"
-if [[ "$1" == "-nohup-" ]]; then
+if [[ "$1" == "-nohup-" ]]; 
+then
 	shift;	##borra el nohup y corre las demas variables una posición.
-else # si no es igual a -nohup- significa que es la primer vuelva y apenas se comenzo a ejecutar el proceso por lo que aqui es donde tengo qeu crear las fifos donde se almacenaran la fecha inicial.
-	if [[ "$1" != "-d" && "$1" != "-h" && "$1" != "--help" && "$1" != "-?" ]]; then
-		if [ ! -n "$2" ];then
+else # si no es igual a -nohup- significa que es la primer vuelta y apenas se comenzo a ejecutar el proceso por lo que aqui es donde tengo qeu crear las fifos donde se almacenaran la fecha inicial.
+	if [[ "$1" != "-d" && "$1" != "-h" && "$1" != "--help" && "$1" != "-?" ]];
+	then
+		if [ ! -n "$2" ];
+		then
 			echo "ERROR: falta pasar directorio a monitorear"
 			exit 1;
 		fi
+
 	else
 		if [[ "$1" == "-d" && $# > 1 ]]
 		then
@@ -362,76 +373,16 @@ fi
 
 case "$1" in
   '-c')
-	if [[ "$posi" != "-nohup-" ]]; then
+	if [[ "$posi" != "-nohup-" ]]; 
+	then
 		#por primera ves debería pasar por aca.
-    	if [[ "$3" != '-a' ]]; then
-			echo "Error: el argumento 3 tiene que ser -a"
-			exit 1;
-		else
-			validarParametros1 "$2" $3
-		fi
-		retorno=$?
-		if [[ $retorno == 1 ]]; then
-				echo "Error: \"$2\" no es un directorio"
-				exit 1;
-		fi
-		if [[ $retorno == 2 ]]; then
-				echo "Error: sin permisos de lectura en directorio a monitorear"
-				exit 1;
-		fi
-
-		validarParametros2 "$4" $5
-
-		let retorno=$?
-		if [[ $retorno == 1 ]]; then
-			echo "Error, cantidad de acciones invalida"
-			exit 1;
-		fi
-		if [[ $retorno == 2 ]]; then
-			echo "Error, accion invalida"
-			exit 1
-		fi
-		if [[ $retorno == 3 ]]; then
-			echo "Error, no puede haber un publicar y no un compilar"
-			exit 1
-		fi
-
-		if [[ $retorno == 4 ]]; then
-			echo "Error, no hay acciones que realizar"
-			exit 1
-		fi
-
-		if [[ $retorno == 5 ]]; then
-			echo "Error, esta la accion de publicar pero no el parametro -s"
-			exit 1
-		fi
-
-		if [[ $retorno != 6 ]];
+		validarParametros "$2" "$3" "$4" "$5"
+		if [[ $# == 6 ]];
 		then
-			validarParametros3 $5 "$6"
+			validarDirectorioPublicar "$6"
 			let retorno=$?
-
-			if [[ $retorno == 1 ]]; then
-				echo "Error, accion de control invalida"
-				exit 1
-			fi
-
-			if [[ $retorno == 3 ]]; then
-				echo "Error: \"$6\" no es un directorio"
-				exit 1
-			fi
-
-			if [[ $retorno == 4 ]]; then
-				echo "Error, \"$6\" no tiene permisos de lectura"
-				exit 1
-			fi
-
-			if [[ $retorno == 5 ]]; then
-				echo "Error, \"$6\" no tiene permisos de escritura"
-				exit 1
-			fi
-
-			if [[ $retorno == 2 ]]; then
+			if [[ $retorno == 2 ]];
+			then
 				#si el directorio no existe mandare el directorio de la script.
 				iniciarDemonio "-nohup-" $1 "$2" $3 "$4" $5 "$dir_base"
 			else
