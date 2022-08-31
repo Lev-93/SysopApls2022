@@ -24,7 +24,7 @@ validarParametros() { #directorio -a acciones -s
 		exit 1;
 	fi
 
-	if [ ! -n "$2" ];
+	if [[ "$2" != "-a" ]];
 	then
 		echo "Error, el tercer parametro debería de ser "-a""
 		mostrarAyuda
