@@ -1,0 +1,8 @@
+//un comentario
+/*dos comentarios
+tres comentarios
+cuatro comentarios*/
+un codigo
+dos codigos
+/*cinco comentarios*/
+tres codigos
