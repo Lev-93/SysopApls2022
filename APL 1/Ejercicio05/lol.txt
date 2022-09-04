@@ -1,4 +1,0 @@
-“final”: 10,
-“recursan: 4,
-“abandonaron”: 1,
-“promocionan”: 15

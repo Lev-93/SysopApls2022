@@ -1,27 +1,39 @@
 #!/bin/bash
-#aca van ejemplos
+# =========================== Encabezado =======================
 
-# inicio integrantes
+# Nombre del script: ejercicio5.sh
+# Número de ejercicio: 5
+# Trabajo Práctico: 1
+# Entrega: Primera entrega
 
-# fin integrantes
+# ==============================================================
+
+# ------------------------ Integrantes ------------------------
+# 
+#	Nombre				|	Apellido			|	DNI
+#	Matías				|	Beltramone			|	40.306.191
+#	Eduardo				|	Couzo Wetzel		|	43.584.741
+#	Brian				|	Menchaca			|	40.476.567
+#	Ivana				|	Ruiz				|	33.329.371
+#	Lucas				|	Villegas			|	37.792.844
+# -------------------------------------------------------------
 
 function help(){
-    echo "Es importante saber que los parametros --notas y -materias son OBLIGATORIOS"
+    echo "Es importante saber que los parametros -n y -m son OBLIGATORIOS"
     echo "Para poder utilizar este script"
     echo "Debemos tener en cuenta lo siguiente"
-    echo "-notas es la ruta del archivo a procesar."
-    echo "-materias es la ruta del archivo con los datos de las materias que quiera"
-    # echo "-o recibe la salida del programa"
-    #echo "a continuacion se pondran ejemplos de recopilaciones:"
-    #echo "./recopilar.sh -d “./csvs” -e “Moron” -o “./salida.json”"
-    #echo "./recopilar.sh -d “./csvs” -o  “./salida.json”"
+    echo "-n es la ruta del archivo a procesar."
+    echo "-m es la ruta del archivo con los datos de las materias que quiera"
+    echo "a continuacion se pondran ejemplos de recopilaciones:"
+    echo "./ejercicio5.sh -n ./notas.txt -m ./materias.txt"
     echo "recorda que los parametros son unicos y solo debe haber un parametro de cada seccion"
 }
 
 function errorParam(){
-    echo "Cantidad de parametros erronea, recuerde que siempre puede utilizar -k para solicitar asistencia de uso"
+    echo "Cantidad de parametros erronea, recuerde que siempre puede utilizar -h para solicitar asistencia de uso"
 }
 
+<<<<<<< HEAD
 validar() {
 
 	if [ ! -f "$1" ];
@@ -65,6 +77,8 @@ validar() {
 notasexiste=0
 materiasexiste=0
 
+=======
+>>>>>>> 974c106a6e5925371ae9f847582612063af7f84d
 # while getopts "n:m:h" option
 # do
 #     case "$option" in
@@ -143,19 +157,86 @@ materiasexiste=0
 
 # done
 
+<<<<<<< HEAD
 validar "$2" "$4"
+=======
+validar() {
+
+    ruta1=`readlink -e "$1"`
+    ruta2=`readlink -e "$2"`
+
+	if [ ! -f "$1" ];
+	then
+		echo "Error: \"$1\" no es un fichero"
+		exit 1
+	fi
+	
+	if [ ! -r "$1" ];
+	then
+		echo "Error, \"$1\" no tiene permisos de lectura"
+		exit 1
+	fi
+
+	if [ ! -w "$1" ];
+	then
+		echo "Error, \"$1\" no tiene permisos de escritura"
+		exit 1
+	fi
+
+	if [ ! -f "$2" ];
+	then
+		echo "Error: \"$2\" no es un fichero"
+		exit 1
+	fi
+	
+	if [ ! -r "$2" ];
+	then
+		echo "Error, \"$2\" no tiene permisos de lectura"
+		exit 1
+	fi
+
+	if [ ! -w "$2" ];
+	then
+		echo "Error, \"$2\" no tiene permisos de escritura"
+		exit 1
+	fi
+}
+>>>>>>> 974c106a6e5925371ae9f847582612063af7f84d
 
 while getopts "n:m:h" option
 do
     case "$option" in
         n)  
-            notas=${OPTARG}
+            if [[ "$#" -ne 4 ]]
+            then
+                errorParam
+                help
+                exit
+            fi
+
+            validar "$2" "$4"
+            notas="${OPTARG}"
+            lengthNotas=$(cat ${OPTARG} | wc -l)
             ;;
         m)  
-            materias=${OPTARG}
+
+            if [[ $# -ne 4 ]]
+            then
+                errorParam
+                help
+                exit
+            fi
+
+            validar "$2" "$4"
+            materias="${OPTARG}"
+            lengthMaterias=$(cat ${OPTARG} | wc -l)
             ;;
+<<<<<<< HEAD
         '-h' | '--help' | '-?')  
             echo "comela"
+=======
+        h)  
+>>>>>>> 974c106a6e5925371ae9f847582612063af7f84d
             help
             exit 0
             ;;
@@ -163,4 +244,4 @@ do
 done
 
 # awk -F, -f ejercicio5.awk $notas $materias > "./salida.json"
-awk -F, -f ejercicio5.awk $notas $materias
+awk -v variable1="$lengthNotas" -v variable2="$lengthMaterias" -F, -f ejercicio5.awk $notas $materias > "./salida.json"
