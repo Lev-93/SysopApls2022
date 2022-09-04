@@ -6,3 +6,4 @@ DNI|IdMAteria|PrimerParcial|SegundoParcial|Recuperatorio|Final
 40306191|1|10|10||
 40306191|2|1|1||
 40306191|6|1|||
+40306191|6|1|||
