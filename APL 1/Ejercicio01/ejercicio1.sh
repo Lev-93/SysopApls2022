@@ -2,7 +2,7 @@
 # =========================== Encabezado =======================
 
 # Nombre del script: Ejercicio4.sh
-# Número de ejercicio: 4
+# Número de ejercicio: 1
 # Trabajo Práctico: 1
 # Entrega: Primera entrega
 
@@ -10,12 +10,12 @@
 
 # ------------------------ Integrantes ------------------------
 # 
-#	Nombre				|	Apellido			|	DNI
-#	Matías				|	Beltramone			|	40.306.191
-#	Eduardo				|	Couzo Wetzel			|	43.584.741
-#	Brian				|	Menchaca			|	40.476.567
-#	Ivana				|	Ruiz				|	33.329.371
-#	Lucas				|	Villegas			|	37.792.844
+#	Nombre			|	Apellido			    |	DNI
+#	Matías			|	Beltramone	    |	40.306.191
+#	Eduardo		|	Couzo Wetzel			|	43.584.741
+#	Brian				|	Menchaca			    |	40.476.567
+#	Ivana				|	Ruiz				       |	33.329.371
+#	Lucas				|	Villegas			    |	37.792.844
 # -------------------------------------------------------------
 
 
