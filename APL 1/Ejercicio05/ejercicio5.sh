@@ -1,22 +1,9 @@
 #!/bin/bash
-# =========================== Encabezado =======================
+#aca van ejemplos
 
-# Nombre del script: ejercicio5.sh
-# Número de ejercicio: 5
-# Trabajo Práctico: 1
-# Entrega: Primera entrega
+# inicio integrantes
 
-# ==============================================================
-
-# ------------------------ Integrantes ------------------------
-# 
-#	Nombre				|	Apellido			|	DNI
-#	Matías				|	Beltramone			|	40.306.191
-#	Eduardo				|	Couzo Wetzel		|	43.584.741
-#	Brian				|	Menchaca			|	40.476.567
-#	Ivana				|	Ruiz				|	33.329.371
-#	Lucas				|	Villegas			|	37.792.844
-# -------------------------------------------------------------
+# fin integrantes
 
 function help(){
     echo "Es importante saber que los parametros -n y -m son OBLIGATORIOS"
@@ -26,6 +13,7 @@ function help(){
     echo "-m es la ruta del archivo con los datos de las materias que quiera"
     echo "a continuacion se pondran ejemplos de recopilaciones:"
     echo "./ejercicio5.sh -n ./notas.txt -m ./materias.txt"
+    #echo "./recopilar.sh -d “./csvs” -o  “./salida.json”"
     echo "recorda que los parametros son unicos y solo debe haber un parametro de cada seccion"
 }
 
@@ -33,52 +21,6 @@ function errorParam(){
     echo "Cantidad de parametros erronea, recuerde que siempre puede utilizar -h para solicitar asistencia de uso"
 }
 
-<<<<<<< HEAD
-validar() {
-
-	if [ ! -f "$1" ];
-	then
-		echo "Error: \"$1\" no es un fichero"
-		exit 1
-	fi
-	
-	if [ ! -r "$1" ];
-	then
-		echo "Error, \"$1\" no tiene permisos de lectura"
-		exit 1
-	fi
-
-	if [ ! -w "$1" ];
-	then
-		echo "Error, \"$1\" no tiene permisos de escritura"
-		exit 1
-	fi
-
-	if [ ! -f "$2" ];
-	then
-		echo "Error: \"$2\" no es un fichero"
-		exit 1
-	fi
-	
-	if [ ! -r "$2" ];
-	then
-		echo "Error, \"$2\" no tiene permisos de lectura"
-		exit 1
-	fi
-
-	if [ ! -w "$2" ];
-	then
-		echo "Error, \"$2\" no tiene permisos de escritura"
-		exit 1
-	fi
-}
-
-
-notasexiste=0
-materiasexiste=0
-
-=======
->>>>>>> 974c106a6e5925371ae9f847582612063af7f84d
 # while getopts "n:m:h" option
 # do
 #     case "$option" in
@@ -157,9 +99,6 @@ materiasexiste=0
 
 # done
 
-<<<<<<< HEAD
-validar "$2" "$4"
-=======
 validar() {
 
     ruta1=`readlink -e "$1"`
@@ -201,7 +140,6 @@ validar() {
 		exit 1
 	fi
 }
->>>>>>> 974c106a6e5925371ae9f847582612063af7f84d
 
 while getopts "n:m:h" option
 do
@@ -231,12 +169,7 @@ do
             materias="${OPTARG}"
             lengthMaterias=$(cat ${OPTARG} | wc -l)
             ;;
-<<<<<<< HEAD
-        '-h' | '--help' | '-?')  
-            echo "comela"
-=======
         h)  
->>>>>>> 974c106a6e5925371ae9f847582612063af7f84d
             help
             exit 0
             ;;
