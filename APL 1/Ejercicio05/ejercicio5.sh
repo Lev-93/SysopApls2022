@@ -1,9 +1,22 @@
 #!/bin/bash
-#aca van ejemplos
+# =========================== Encabezado =======================
 
-# inicio integrantes
+# Nombre del script: ejercicio5.sh
+# Número de ejercicio: 5
+# Trabajo Práctico: 1
+# Entrega: Primera entrega
 
-# fin integrantes
+# ==============================================================
+
+# ------------------------ Integrantes ------------------------
+# 
+#	Nombre				|	Apellido			|	DNI
+#	Matías				|	Beltramone			|	40.306.191
+#	Eduardo				|	Couzo Wetzel		|	43.584.741
+#	Brian				|	Menchaca			|	40.476.567
+#	Ivana				|	Ruiz				|	33.329.371
+#	Lucas				|	Villegas			|	37.792.844
+# -------------------------------------------------------------
 
 function help(){
     echo "Es importante saber que los parametros -n y -m son OBLIGATORIOS"
@@ -13,7 +26,6 @@ function help(){
     echo "-m es la ruta del archivo con los datos de las materias que quiera"
     echo "a continuacion se pondran ejemplos de recopilaciones:"
     echo "./ejercicio5.sh -n ./notas.txt -m ./materias.txt"
-    #echo "./recopilar.sh -d “./csvs” -o  “./salida.json”"
     echo "recorda que los parametros son unicos y solo debe haber un parametro de cada seccion"
 }
 
