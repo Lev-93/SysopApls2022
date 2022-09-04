@@ -4,11 +4,15 @@ declare -a llamadas
 declare -a cantidadLlamadas
 declare -a estado
 
+
+
+
 todoOk="1"
 ayuda()
 {
 	
 	echo "El script necesita el parametro --logs y el directorio del archivo de logs de llamadas. Formato: --logs '"directorio"'"
+ 	#echo "El scrip tiene por objetivo generar los siguiente"
 }
 
 if test "$1" == "-h" || test "$1" == "--help" ||test  "$1" == "-"
@@ -34,13 +38,13 @@ then
 	ayuda
 fi
 
-if test "$todoOk" -eq "1" && !(test -f "$2")
+if test "$todoOk" -eq "1" && ! test -f "$2"
 then
 	echo "El archivo "$2" no existe"
 	todoOk="0"
 fi
 
-if (test "$todOk" == "1") && !(test -r "$2")
+if test "$todoOk" -eq "1" && ! test -r "$2"
 then
 	echo "El archivo no tiene permiso de lectura"
 	todoOk="0"
@@ -450,3 +454,9 @@ then
 		cargarPromediosPorSemana
 	fi
 fi
+
+
+
+
+
+
