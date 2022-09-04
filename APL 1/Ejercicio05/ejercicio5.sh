@@ -22,6 +22,46 @@ function errorParam(){
     echo "Cantidad de parametros erronea, recuerde que siempre puede utilizar -k para solicitar asistencia de uso"
 }
 
+validar() {
+
+	if [ ! -f "$1" ];
+	then
+		echo "Error: \"$1\" no es un fichero"
+		exit 1
+	fi
+	
+	if [ ! -r "$1" ];
+	then
+		echo "Error, \"$1\" no tiene permisos de lectura"
+		exit 1
+	fi
+
+	if [ ! -w "$1" ];
+	then
+		echo "Error, \"$1\" no tiene permisos de escritura"
+		exit 1
+	fi
+
+	if [ ! -f "$2" ];
+	then
+		echo "Error: \"$2\" no es un fichero"
+		exit 1
+	fi
+	
+	if [ ! -r "$2" ];
+	then
+		echo "Error, \"$2\" no tiene permisos de lectura"
+		exit 1
+	fi
+
+	if [ ! -w "$2" ];
+	then
+		echo "Error, \"$2\" no tiene permisos de escritura"
+		exit 1
+	fi
+}
+
+
 notasexiste=0
 materiasexiste=0
 
@@ -103,6 +143,8 @@ materiasexiste=0
 
 # done
 
+validar "$2" "$4"
+
 while getopts "n:m:h" option
 do
     case "$option" in
@@ -112,8 +154,9 @@ do
         m)  
             materias=${OPTARG}
             ;;
-        h)  
+        '-h' | '--help' | '-?')  
             echo "comela"
+            help
             exit 0
             ;;
     esac
