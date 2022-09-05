@@ -238,6 +238,92 @@ recuperar()
     echo "Archivo recuperado"
 }
 
+borrar() {
+    archivo_a_borrar="$1"
+    papelera="${HOME}/papelera.zip"
+
+    if [ ! -f "$papelera" ];
+    then
+        echo "Archivo papelera.zip no existe en el home del usuario"
+        echo "No existen archivos a eliminar"
+        exit 1
+    fi
+    if [ $(tar -tPf "$papelera" | wc -c) -eq 0 ];
+    then
+        echo "Papelera se encuentra vacía"
+        echo "No se puede eliminar archivo indicado"
+        exit 1
+    fi
+    if [ "$archivo_a_borrar" == "" ];
+    then
+        echo "Parámetro archivo a quitar de la papelera sin informar"
+        exit 1
+    fi
+
+    contadorArchivosIguales=0
+    archivosIguales=""
+    declare -a arrayArchivos
+    archivo_a_eliminar=""
+
+    IFS=$'\n'
+    for archivo in $(realpath $(tar -tPf "$papelera"))
+    do
+        rutaArchivo=$(dirname "$archivo")
+        nombreArchivo=$(basename "$archivo")
+        if [ "$nombreArchivo" == "$archivo_a_borrar" ];
+        then
+            let contadorArchivosIguales=contadorArchivosIguales+1
+            archivosIguales="$archivosIguales$contadorArchivosIguales - $nombreArchivo $rutaArchivo;"
+            arrayArchivos[$contadorArchivosIguales]="$archivo"
+            archivo_a_eliminar="$archivo"
+        fi
+    done
+
+    if [ "$contadorArchivosIguales" -eq 0 ];
+    then
+        echo "No existe el archivo en la papelera"
+        exit 1
+    else
+        if [ "$contadorArchivosIguales" -eq 1 ];
+        then
+            tar -xvPf "$papelera" "$archivo_a_eliminar" 1> /dev/null 
+            tar --delete --file="$papelera" "$archivo_a_eliminar"
+            rm "$archivo_a_eliminar"
+        else
+            echo "$archivosIguales" | awk 'BEGIN{FS=";"} {for(i=1; i < NF; i++) print $i}'
+            echo "¿Qué archivo desea eliminar?"
+            read opcion
+
+            seleccion="${arrayArchivos[$opcion]}"
+
+            elementoNumero=0
+            indice=0
+            IFS=$'\n'
+            for archivo in $(realpath $(tar -tPf "$papelera"))
+            do
+                let indice=$indice+1
+                if [ "$seleccion" == "$archivo" ];
+                then
+                    elementoNumero=$indice
+                fi
+            done
+            indice=0
+            IFS=$'\n'
+            for archivo in $(tar -tPf "$papelera")
+            do
+                let indice=$indice+1
+                if [ "$indice" == "$elementoNumero" ];
+                then
+                    tar -xvPf "$papelera" "$archivo" 1> /dev/null
+                    tar --delete --file="$papelera" "$archivo"
+                    rm "$archivo"
+                fi
+            done
+        fi
+    fi
+    echo "Archivo eliminado de la papelera"
+}
+
 # Se valida parámetros
 if ([ $# -eq 0 ]);
 then
@@ -274,6 +360,10 @@ case "$1" in
         recuperar "$2"
         exit 0
         ;;
+    "--borrar Archivo")
+		borrar "$2"
+		exit 0
+		;;
     *) 
         echo "Error en invocar al script"
         echo "Por favor consulte la ayuda"
