@@ -33,52 +33,6 @@ function errorParam(){
     echo "Cantidad de parametros erronea, recuerde que siempre puede utilizar -h para solicitar asistencia de uso"
 }
 
-<<<<<<< HEAD
-validar() {
-
-	if [ ! -f "$1" ];
-	then
-		echo "Error: \"$1\" no es un fichero"
-		exit 1
-	fi
-	
-	if [ ! -r "$1" ];
-	then
-		echo "Error, \"$1\" no tiene permisos de lectura"
-		exit 1
-	fi
-
-	if [ ! -w "$1" ];
-	then
-		echo "Error, \"$1\" no tiene permisos de escritura"
-		exit 1
-	fi
-
-	if [ ! -f "$2" ];
-	then
-		echo "Error: \"$2\" no es un fichero"
-		exit 1
-	fi
-	
-	if [ ! -r "$2" ];
-	then
-		echo "Error, \"$2\" no tiene permisos de lectura"
-		exit 1
-	fi
-
-	if [ ! -w "$2" ];
-	then
-		echo "Error, \"$2\" no tiene permisos de escritura"
-		exit 1
-	fi
-}
-
-
-notasexiste=0
-materiasexiste=0
-
-=======
->>>>>>> 974c106a6e5925371ae9f847582612063af7f84d
 # while getopts "n:m:h" option
 # do
 #     case "$option" in
@@ -157,9 +111,6 @@ materiasexiste=0
 
 # done
 
-<<<<<<< HEAD
-validar "$2" "$4"
-=======
 validar() {
 
     ruta1=`readlink -e "$1"`
@@ -201,7 +152,6 @@ validar() {
 		exit 1
 	fi
 }
->>>>>>> 974c106a6e5925371ae9f847582612063af7f84d
 
 while getopts "n:m:h" option
 do
@@ -231,12 +181,7 @@ do
             materias="${OPTARG}"
             lengthMaterias=$(cat ${OPTARG} | wc -l)
             ;;
-<<<<<<< HEAD
-        '-h' | '--help' | '-?')  
-            echo "comela"
-=======
         h)  
->>>>>>> 974c106a6e5925371ae9f847582612063af7f84d
             help
             exit 0
             ;;
