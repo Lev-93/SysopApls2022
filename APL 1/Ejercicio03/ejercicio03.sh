@@ -2,8 +2,8 @@
 
 # =========================== Encabezado =======================
 
-# Nombre del script: Ejercicio4.sh
-# Número de ejercicio: 4
+# Nombre del script: Ejercicio3.sh
+# Número de ejercicio: 3
 # Trabajo Práctico: 1
 # Entrega: Primera entrega
 
