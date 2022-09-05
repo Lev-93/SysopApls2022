@@ -1,15 +1,40 @@
-#!/bin/bash
-
+#! /bin/bash
 #**********************************************************
 ##  Ejercicio nro 6 del APL 1 - 2c 2022 - Entrega nro 1
 ##  Script: Ejercicio06.sh
 ##
 ##  Integrantes del grupo
 ##  Villegas Lucas Ezequiel, 37792844
+##  Menchaca Brian Angel, 40476567
 #**********************************************************
 
+
+########################### CASOS DE PRUEBA: ##########################################
+#****     Caso 1. Caso Común:
+#     ./Ejercicio06.sh --eliminar ./Lote_de_Pruebas/1_Elimina_y_Recupera/prueba.txt
+#     ./Ejercicio06.sh --listar
+#     ./Ejercicio06.sh --recuperar prueba.txt
+#     ./Ejercicio06.sh --listar
+
+#****     Caso 2. Caso archivos con mismo nombre:
+#     ./Ejercicio06.sh --eliminar ./Lote_de_Pruebas/2_Archivos_mismo_nombre/prueba1/prueba.txt
+#     ./Ejercicio06.sh --eliminar ./Lote_de_Pruebas/2_Archivos_mismo_nombre/prueba2/prueba.txt
+#     ./Ejercicio06.sh --recuperar prueba.txt
+
+#****     Caso 3. Caso ruta con espacios
+#     ./Ejercicio06.sh --eliminar ./Lote_de_Pruebas/3_Ruta_con_espacios/Prueba 1/prueba.txt
+#     ./Ejercicio06.sh --recuperar prueba.txt
+
+#****     Caso 4. Caso donde creamos un archivos, para luego eliminarlo y vaciamos la papelera(utilizando una copia de otro archivo)
+#     cp ./Lote_de_Pruebas/1_Elimina_y_Recupera/prueba.txt ./Lote_de_Pruebas/4_Prueba_Vaciar_Palelera
+#     ./Ejercicio06.sh --eliminar ./Lote_de_Pruebas/4_Prueba_Vaciar_Palelera/prueba.txt
+#     ./Ejercicio06.sh --listar
+#     ./Ejercicio06.sh --vaciar
+#     ./Ejercicio06.sh --listar
+
 # Función Ayuda
-ayuda(){
+ayuda()
+{
     echo "************************************************"
     echo " Este script simula una papelera de reciclaje   "
     echo " al borrar un archivo se tiene la posibilidad   "
@@ -40,10 +65,17 @@ ayuda(){
 }
 
 # Función eliminar archivo
-eliminar(){
-    archivoEliminar=$(realpath "$1")
+eliminar()
+{
+    archivoEliminar=$(realpath "$2")
+    cant=$#
+    for (( i = 3; i<=$cant; i++))
+    do
+        shift
+        archivoEliminar+=" "
+        archivoEliminar+=$2
+    done
     papelera="${HOME}/papelera.zip"
-
     if [ ! -f "$archivoEliminar" ];
     then
         echo "Parámetro archivo en función eliminar no es válido"
@@ -61,7 +93,8 @@ eliminar(){
 }
 
 # Función listar elementos de la papelera
-listar(){
+listar()
+{
     papelera="${HOME}/papelera.zip"
 
     if [ ! -f "$papelera" ];
@@ -87,7 +120,8 @@ listar(){
 }
 
 # Función vaciar papelera
-vaciar(){
+vaciar()
+{
     papelera="${HOME}/papelera.zip"
 
     if [ ! -f "$papelera" ];
@@ -108,7 +142,8 @@ vaciar(){
 }
 
 # Función recuperar archivo
-recuperar(){
+recuperar()
+{
     archivoParaRecuperar="$1"
     papelera="${HOME}/papelera.zip"
     
@@ -193,7 +228,7 @@ recuperar(){
 }
 
 # Se valida parámetros
-if ([ $# -eq 0 ] || [ $# -gt 2 ]);
+if ([ $# -eq 0 ]);
 then
     echo "Error en invocar al script"
     echo "Por favor consulte la ayuda"
@@ -221,7 +256,7 @@ case "$1" in
         exit 0
         ;;
     "--eliminar")
-        eliminar "$2"
+        eliminar "$@"
         exit 0
         ;;
     "--recuperar")
