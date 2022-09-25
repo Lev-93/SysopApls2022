@@ -1,7 +1,7 @@
 # =========================== Encabezado =======================
 
-# Nombre del script: Ejercicio1.sh
-# Número de ejercicio: 1
+# Nombre del script: Ejercicio2.sh
+# Número de ejercicio: 2
 # Trabajo Práctico: 2
 # Entrega: Primera entrega
 
