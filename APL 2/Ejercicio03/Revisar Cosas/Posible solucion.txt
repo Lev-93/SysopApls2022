@@ -1,0 +1,19 @@
+asdsaasdsadasdsadasdasdasdasdasdsaasdasdsadsadsadñlsadñl,asd,asdasdzxczxasdasdasasdaszxsdsadHolra
+
+asdsadsadsaGuardarme la fecha en una estructura tipo fifo para luego ir comparandola y cambiandola cada ves que compare esa fecha con la fecha de modificación de los archivos.
+guardar el pid del demonio en una fifo tambien...
+
+asga
+Tener en cuenta que el renombre no reporta modificación de archivo con ls.
+
+Tener en cuenta que eliminar tampoco funciona con ls...
+
+Hellow worldsdsa
+
+Mas vamos
+asdasdsad
+sadsadasdsdasdsa,klxHsadoasdasdlacxcdsa
+fafsdsaddsadsadsakdmsakdsalmdlsamdsa
+
+
+pleasoasdas
