@@ -1,14 +1,21 @@
-################################################################################
-##  Ejercicio nro 6 del APL 2 - 1c 2022 - Entrega nro 2
-##  Script: Ejercicio06.ps1
-##
-##  Integrantes del grupo
-##  Schwab Maximiliano Alejandro, 34536455
-##  Vivas Pablo Ezequiel, 38703964
-##  Garcia Velez Kevin, 38619312
-##  Villegas Lucas Ezequiel, 37792844
-##  Russolo Sergio Gabriel, 35945878
-################################################################################
+# =========================== Encabezado =======================
+
+# Nombre del script: Ejercicio06.sh
+# Número de ejercicio: 6
+# Trabajo Práctico: 2
+# Entrega: Primera entrega
+
+# ==============================================================
+
+# ------------------------ Integrantes ------------------------
+# 
+#	Nombre				|	Apellido			|	DNI
+#	Matías				|	Beltramone			|	40.306.191
+#	Eduardo				|	Couzo Wetzel		|	43.584.741
+#	Brian				|	Menchaca			|	40.476.567
+#	Ivana				|	Ruiz				|	33.329.371
+#	Lucas				|	Villegas			|	37.792.844
+# -------------------------------------------------------------
 
 <#
 .SYNOPSIS
