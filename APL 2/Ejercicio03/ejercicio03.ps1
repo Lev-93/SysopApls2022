@@ -21,14 +21,14 @@
 .SYNOPSIS
 El script se encarga de monitorizar un directorio enviado por parametro
 
-.PARAMETER c
+.PARAMETER codigo
 Indica el directorio a monitorear.    
 
-.PARAMETER a
+.PARAMETER acciones
 Indica la lista de acciones separadas por coma, la acción publicar no puede estar si no se encuentra compilar.
 Si el directorio donde se guarda el archivo generando en compilar no se encuentra se crea.
 
-.PARAMETER s
+.PARAMETER salida
 Indica el directorio a copiar el archivo generado luego de haber compilado, este parametro es opcional, es decir, solo debe estar si se envía publicar como una de las acciones.  
 Si el directorio indicado en -s no existe, se creara automáticamente.
 
@@ -37,17 +37,17 @@ Si el directorio indicado en -s no existe, se creara automáticamente.
     al detectarse una creación/modificación/Eliminación/renombrado/modificación de contenido de un archivo
     se dejen ejecutas dichas acciones pasadas por parametro.
     El script se invoca de la siguiente forma:
-    ./Ejercicio03.ps1 -c <directorio a monitorear> -a <lista de acciones> -s <directorio donde copiar el archivo generado luego de haber compilado>
+    ./Ejercicio03.ps1 -codigo <directorio a monitorear> -acciones <lista de acciones> -salida <directorio donde copiar el archivo generado luego de haber compilado>
 
 .EXAMPLE
 
-.\Ejercicio03.ps1 -c "\directoriomonitorizar" -a "listar,peso"   
+.\Ejercicio03.ps1 -codigo "\directoriomonitorizar" -acciones "listar,peso"   
 .EXAMPLE
 
-.\Ejercicio03.ps1 -c "\directoriomonitorizar" -a "listar,peso,compilar"
+.\Ejercicio03.ps1 -codigo "\directoriomonitorizar" -acciones "listar,peso,compilar"
 .EXAMPLE
 
-.\Ejercicio03.ps1 -c "\directoriomonitorizar" -a "listar,peso,compilar,publicar" -s "\directoriodestino"
+.\Ejercicio03.ps1 -codigo "\directoriomonitorizar" -acciones "listar,peso,compilar,publicar" -salida "\directoriodestino"
 .EXAMPLE
 
 Get-Help .\Ejercicio03.ps1 -Detailed
@@ -58,7 +58,7 @@ Get-Help .\Ejercicio03.ps1 -Detailed
 #>
 
 Param(
-    [Parameter(Mandatory=$false)] [ValidateNotNullOrEmpty()] [String] $c,
+    [Parameter(Mandatory=$false)] [ValidateNotNullOrEmpty()] [String] $codigo,
     [Parameter(Mandatory=$false)] [ValidateNotNullOrEmpty()]
     [ValidateSet("listar","peso","compilar",'listar,peso',"listar,compilar","peso,listar","compilar,listar","compilar,peso","peso,compilar","compilar,publicar","publicar,compilar"
     ,"listar,peso,compilar","listar,compilar,peso","peso,listar,compilar","peso,compilar,listar","compilar,listar,peso","compilar,peso,listar"
@@ -69,8 +69,8 @@ Param(
     , "compilar,peso,listar,publicar","compilar,peso,publicar,listar","compilar,listar,peso,publicar","compilar,listar,publicar,peso","compilar,publicar,listar,peso","compilar,publicar,peso,listar"
     , "publicar,listar,peso,compilar","publicar,listar,compilar,peso","publicar,peso,listar,compilar","publicar,peso,compilar,listar","publicar,compilar,listar,peso","publicar,compilar,peso,listar"
     )]
-    [string]$a,
-    [Parameter(Mandatory=$false)] [String] $s, #la validación de este parametro la haremos únicamente en caso de tener que publicar algo.
+    [string]$acciones,
+    [Parameter(Mandatory=$false)] [String] $salida, #la validación de este parametro la haremos únicamente en caso de tener que publicar algo.
     [Parameter(Mandatory=$false)] [string] $d
 )
 
@@ -120,20 +120,19 @@ function noExiste() {
     }
 }
 
-
 function Global:RealizarAcciones($FullPath,$accion,$Fecha) {
     $var2=Test-Path -Path "$FullPath" -PathType Leaf -ErrorAction Ignore
     if($var2 -eq $true){
-        if($acciones['listar'] -eq $true){
+        if($Vacciones['listar'] -eq $true){
             #write-host "$Fecha $FullPath was $accion"
             Add-content "$Arch" "$Fecha $FullPath was $accion"
         }
-        if($acciones['peso'] -eq $true -and $accion -ne "DELETED"){
+        if($Vacciones['peso'] -eq $true -and $accion -ne "DELETED"){
             $peso=(gci "$FullPath" | measure Length -s).sum / 1kb
             #Write-Host "$FullPath pesa: $peso kilobytes"
             Add-content "$Arch" "$FullPath pesa: $peso kilobytes"
         }
-        if($acciones['compilar'] -eq $true){
+        if($Vacciones['compilar'] -eq $true){
             $array = @()
             $array += (Get-ChildItem -Path "$PAT" -Attributes "Archive" -Filter "*.*" -Recurse | %{$_.FullName})
             #concatenar todos los archivos de la lista en otro localizado en una carpeta bin ubicada en el directorio de la script
@@ -141,16 +140,12 @@ function Global:RealizarAcciones($FullPath,$accion,$Fecha) {
                 type $array[$i] >> "$PWD\bin\$PID.txt"
             }
         }
-        if($acciones['publicar'] -eq $true){
+        if($Vacciones['publicar'] -eq $true){
             #copiar el archivo obtenido en compilar a la carpeta bin localizada en el mismo directorio donde se se encuentra el script
             Copy-Item -Path "$PWD\bin\$PID.txt" -Destination "$SUB"
         }
     }
 }
-
-
-
-
 
 if ($d -ne "") {
     $directorioAEliminar=split-path -leaf "$d"
@@ -169,9 +164,9 @@ if ($d -ne "") {
 }
 
 
-$Global:as="$a"
-$Global:PAT=(Resolve-Path -LiteralPath "$c").ToString()
-$Global:nombre = split-path -leaf "$c"
+$Global:as="$acciones"
+$Global:PAT=(Resolve-Path -LiteralPath "$codigo").ToString()
+$Global:nombre = split-path -leaf "$codigo"
 Get-validardir "$PAT"
 
 $cadena=$PAT.Replace('\','')
@@ -180,42 +175,42 @@ existe -Nom $cadena
 
 
 
-if($s){
-    $Global:SUB=(Resolve-Path -LiteralPath "$s").ToString()
+if($salida){
+    $Global:SUB=(Resolve-Path -LiteralPath "$salida").ToString()
 }
 
-$Global:acciones = @{ }
+$Global:Vacciones = @{ }
 
-$acc=Write-Output $a | Select-String -Pattern 'listar'
+$acc=Write-Output $acciones | Select-String -Pattern 'listar'
 if($acc){
-    $acciones.Add('listar',"True")
+    $Vacciones.Add('listar',"True")
 }
 else{
-    $acciones.Add('listar',"False")
+    $Vacciones.Add('listar',"False")
 }
 
-$acc=Write-Output $a | Select-String -Pattern 'peso'
+$acc=Write-Output $acciones | Select-String -Pattern 'peso'
 if($acc){
-    $acciones.Add('peso',"True")
+    $Vacciones.Add('peso',"True")
 } else {
-    $acciones.Add('peso',"False")
+    $Vacciones.Add('peso',"False")
 }
 
-$acc=Write-Output $a | Select-String -Pattern 'compilar'
+$acc=Write-Output $acciones | Select-String -Pattern 'compilar'
 if($acc){
-    $acciones.Add('compilar',"True")
+    $Vacciones.Add('compilar',"True")
 } else {
-    $acciones.Add('compilar',"False")
+    $Vacciones.Add('compilar',"False")
 }
 
-$acc=Write-Output $a | Select-String -Pattern 'publicar'
+$acc=Write-Output $acciones | Select-String -Pattern 'publicar'
 if($acc){
-    $acciones.Add('publicar',"True")
+    $Vacciones.Add('publicar',"True")
 } else {
-    $acciones.Add('publicar',"False")
+    $Vacciones.Add('publicar',"False")
 }
 
-if($acciones['compilar'] -eq $true){
+if($Vacciones['compilar'] -eq $true){
     $var=Test-Path -Path "$PWD\bin"
     if($var -eq $false){
         #crear el directorio \bin
@@ -223,7 +218,7 @@ if($acciones['compilar'] -eq $true){
     }
 }
 
-if($acciones['publicar'] -eq $true ){
+if($Vacciones['publicar'] -eq $true ){
     $var=Test-Path -Path "$SUB"
     if($var -ne $true){
         #crear el directorio

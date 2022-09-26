@@ -1,4 +1,4 @@
-asdsadasdsadasdasdasdasdasdsaasdasdsadsadsadñlsadñl,asd,asdasdzxczxasdasdasasdaszxsdsadHolra
+asdsadasdsadasdsadasdasdasdasdasdsaasdasdsadsadsadñlsadñl,asd,asdasdzxczxasdasdasasdaszxsdsadHolra
 
 asdsadsadsaGuardarme la fecha en una estructura tipo fifo para luego ir comparandola y cambiandola cada ves que compare esa fecha con la fecha de modificación de los archivos.
 guardar el pid del demonio en una fifo tambien...
