@@ -60,16 +60,7 @@ Get-Help .\Ejercicio03.ps1 -Detailed
 Param(
     [Parameter(Mandatory=$false)] [ValidateNotNullOrEmpty()] [String] $codigo,
     [Parameter(Mandatory=$false)] [ValidateNotNullOrEmpty()]
-    [ValidateSet("listar","peso","compilar",'listar,peso',"listar,compilar","peso,listar","compilar,listar","compilar,peso","peso,compilar","compilar,publicar","publicar,compilar"
-    ,"listar,peso,compilar","listar,compilar,peso","peso,listar,compilar","peso,compilar,listar","compilar,listar,peso","compilar,peso,listar"
-    ,"listar,compilar,publicar","listar,publicar,compilar","compilar,listar,publicar","compilar,publicar,listar","publicar,compilar,listar","publicar,listar,compilar"
-    ,"peso,compilar,publicar","peso,publicar,compilar","publicar,compilar,peso","publicar,peso,compilar","compilar,peso,publicar","compilar,publicar,peso"
-    , "listar,peso,compilar,publicar","listar,peso,publicar,compilar","listar,publicar,compilar,peso","listar,publicar,peso,compilar","listar,compilar,peso,publicar","listar,compilar,publicar,peso"
-    ,"peso,listar,compilar,publicar","peso,listar,publicar,compilar","peso,compilar,listar,publicar","peso,compilar,publicar,listar","peso,publicar,compilar,listar","peso,publicar,listar,compilar"
-    , "compilar,peso,listar,publicar","compilar,peso,publicar,listar","compilar,listar,peso,publicar","compilar,listar,publicar,peso","compilar,publicar,listar,peso","compilar,publicar,peso,listar"
-    , "publicar,listar,peso,compilar","publicar,listar,compilar,peso","publicar,peso,listar,compilar","publicar,peso,compilar,listar","publicar,compilar,listar,peso","publicar,compilar,peso,listar"
-    )]
-    [string]$acciones,
+    [string[]]$acciones,
     [Parameter(Mandatory=$false)] [String] $salida, #la validación de este parametro la haremos únicamente en caso de tener que publicar algo.
     [Parameter(Mandatory=$false)] [string] $d
 )
@@ -174,40 +165,32 @@ $cadena=$PAT.Replace('\','')
 existe -Nom $cadena
 
 
+$Global:Vacciones = @{listar= "False"; peso= "False"; compilar= "False";publicar="False" }
 
-if($salida){
-    $Global:SUB=(Resolve-Path -LiteralPath "$salida").ToString()
+if($acciones.Count -lt 1 -or $acciones.Count -gt 4){
+    write-output "error, cantidad de acciones inválida"
+    exit 1;
 }
 
-$Global:Vacciones = @{ }
-
-$acc=Write-Output $acciones | Select-String -Pattern 'listar'
-if($acc){
-    $Vacciones.Add('listar',"True")
-}
-else{
-    $Vacciones.Add('listar',"False")
-}
-
-$acc=Write-Output $acciones | Select-String -Pattern 'peso'
-if($acc){
-    $Vacciones.Add('peso',"True")
-} else {
-    $Vacciones.Add('peso',"False")
+for ($i = 0; $i -lt $acciones.Count ; $i++){
+     if($acciones[$i] -ne "listar" -and $acciones[$i] -ne "peso" -and $acciones[$i] -ne "compilar" -and $acciones[$i] -ne "publicar"){
+        Write-Output "Error, Acción inválida"
+        exit 1;
+     }
+     else{
+       $Vacciones.Remove($acciones[$i])
+       $Vacciones.Add($acciones[$i],"True")
+     }
 }
 
-$acc=Write-Output $acciones | Select-String -Pattern 'compilar'
-if($acc){
-    $Vacciones.Add('compilar',"True")
-} else {
-    $Vacciones.Add('compilar',"False")
+if($Vacciones['compilar'] -ne $true -and $Vacciones['publicar'] -eq "true"){
+    Write-Output "Error, no puede haber no haber un compilar y si un publicar"
+    exit 1;
 }
 
-$acc=Write-Output $acciones | Select-String -Pattern 'publicar'
-if($acc){
-    $Vacciones.Add('publicar',"True")
-} else {
-    $Vacciones.Add('publicar',"False")
+if($Vacciones['publicar'] -eq "true" -and -Not $salida){
+    Write-Output "Error, si esta la acción publicar, debe haber un directorio en salida"
+    exit 1;
 }
 
 if($Vacciones['compilar'] -eq $true){
@@ -219,11 +202,15 @@ if($Vacciones['compilar'] -eq $true){
 }
 
 if($Vacciones['publicar'] -eq $true ){
-    $var=Test-Path -Path "$SUB"
+    $var=Test-Path -Path "$salida"
     if($var -ne $true){
         #crear el directorio
-        New-Item "$SUB" -Type Directory
+        New-Item "$salida" -Type Directory
     }
+}
+
+if($salida){
+    $Global:SUB=(Resolve-Path -LiteralPath "$salida").ToString()
 }
 
 
