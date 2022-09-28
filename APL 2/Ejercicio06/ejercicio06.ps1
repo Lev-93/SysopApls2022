@@ -62,6 +62,9 @@ param(
   [Parameter(Position=1,ParameterSetName='recuperar')]
   [switch]
   $recuperar,
+  [Parameter(Position=1,ParameterSetName='borrar')]
+  [switch]
+  $borrar,
   [Parameter(Mandatory=$false,Position=2)]
   [String]
   $archivo
@@ -229,6 +232,99 @@ function recuperar{
   Write-host "Archivo recuperado"
 }
 
+function borrar{
+  $archivoParaBorrar="$archivo"
+  $papelera="${HOME}/papelera.zip"
+  
+  if(!(Test-Path "$papelera")){
+    Write-host "Archivo papelera.zip no existe en el home del usuario"
+    Write-host "No existen archivos a recuperar"
+    exit 1
+  }
+
+  if([String]::IsNullOrEmpty("$archivoParaBorrar")){
+    Write-host "Parámetro nombre de archivo a borrar sin informar"
+    exit 1
+  }
+
+  $contadorArchivosIguales=0;
+  $archivosIguales = "";
+  $arrayArchivos = @()
+
+  Add-Type -Assembly 'System.IO.Compression.FileSystem';
+  $zip = [System.IO.Compression.ZipFile]::Open("$papelera", 'update');
+  
+  foreach($archivoDelZip in $zip.Entries){
+    Resolve-Path "$archivoDelZip" -ErrorAction SilentlyContinue -ErrorVariable _file
+    $archivoListar = $_file[0].TargetObject;
+    $nombreArchivo=$(Split-Path -Leaf "$archivoListar")
+    $rutaArchivo=$(Split-Path -Path "$archivoListar")
+
+    if("$nombreArchivo".Equals("$archivoParaBorrar")){
+      $contadorArchivosIguales++;
+      $archivosIguales="$archivosIguales$contadorArchivosIguales - $nombreArchivo $rutaArchivo;"
+      $arrayArchivos += "$archivoListar"
+    }
+  }
+
+  if($contadorArchivosIguales -eq 0){
+    Write-Host "No existe el archivo en la papelera";
+    $zip.Dispose();
+    exit 1;
+  }elseif($contadorArchivosIguales -eq 1){
+    $indice=0;
+    foreach($archivoDelZip in $zip.Entries){
+      Resolve-Path "$archivoDelZip" -ErrorAction SilentlyContinue -ErrorVariable _file
+      $archivoBorrar = $_file[0].TargetObject;
+      $nombreArchivo=$(Split-Path -Leaf "$archivoBorrar")
+      if("$nombreArchivo".Equals("$archivoParaBorrar")){
+        break;
+      }
+      $indice++;
+    }
+    $zip.Entries[$indice].Delete();
+  }else{
+    foreach($linea in "$archivosIguales".Split(";")){
+      Write-Host "$linea";
+    }
+    
+    $opcion = Read-Host "¿Qué archivo desea borrar? ";
+    if($opcion -le 0){
+      Write-Host "Opciòn invalida";
+      $zip.Dispose();
+      exit 1;
+    }
+    
+    try {
+      $seleccion = $arrayArchivos[$opcion-1];
+      $indice=0;
+    }
+    catch {
+      Write-Host "Opciòn invalida";
+      $zip.Dispose();
+      exit 1;
+    }
+
+    foreach($archivoDelZip in $zip.Entries){
+      Resolve-Path "$archivoDelZip" -ErrorAction SilentlyContinue -ErrorVariable _file
+      $archivoBorrar = $_file[0].TargetObject;
+  
+      if("$archivoBorrar".Equals("$seleccion")){
+        break;
+      }
+      $indice++;
+    }
+    try {
+      $zip.Entries[$indice].Delete();
+    }
+    catch {
+      Write-Host "Opciòn invalida"; 
+      $zip.Dispose();
+      exit 1;
+        }
+    }
+}
+
 if($listar){
   listar;
 }elseif ($vaciar) {
@@ -237,7 +333,10 @@ if($listar){
   eliminar;
 }elseif ($recuperar) {
   recuperar;
-}else {
+}elseif ($borrar){
+  borrar;
+}
+else {
   Write-Host "Parametros incorrectos";
   Write-Host "Por favor, consulte la ayuda";
   exit 1;
