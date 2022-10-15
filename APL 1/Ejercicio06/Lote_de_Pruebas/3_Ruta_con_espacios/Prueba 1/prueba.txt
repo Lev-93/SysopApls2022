@@ -1,1 +1,0 @@
-caso donde se evalua cuando la ruta contiene espacios

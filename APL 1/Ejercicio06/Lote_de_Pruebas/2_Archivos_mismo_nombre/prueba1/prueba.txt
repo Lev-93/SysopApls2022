@@ -1,1 +1,0 @@
-Se comparan ambos archivos de mismo nombre pero de distinta ruta

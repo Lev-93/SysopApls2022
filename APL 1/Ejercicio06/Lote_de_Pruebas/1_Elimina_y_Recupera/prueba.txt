@@ -1,1 +1,0 @@
-caso en donde elimina el archivo y es restaurado

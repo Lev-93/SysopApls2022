@@ -19,7 +19,6 @@
 #	Lucas				|	Villegas			|	37.792.844
 # -------------------------------------------------------------
 
-
 ########################### CASOS DE PRUEBA: ##########################################
 #****     Caso 1. Caso Común:
 #     ./Ejercicio06.sh --eliminar ./Lote_de_Pruebas/1_Elimina_y_Recupera/prueba.txt
@@ -44,8 +43,7 @@
 #     ./Ejercicio06.sh --listar
 
 # Función Ayuda
-ayuda()
-{
+ayuda() {
     echo "************************************************"
     echo " Este script simula una papelera de reciclaje   "
     echo " al borrar un archivo se tiene la posibilidad   "
@@ -68,82 +66,91 @@ ayuda()
     echo "                                                "
     echo "  4) Recuperar archivo de papelera:             "
     echo "      ./Ejercicio6.sh --recuperar archivo       "
-    echo "                                                "  
+    echo "                                                "
     echo "  5) Eliminar archivo (Se envía a la papelera): "
     echo "      ./Ejercicio6.sh --eliminar archivo        "
-    echo "                                                "        
+    echo "                                                "
     echo "************************************************"
 }
 
 # Función eliminar archivo
-eliminar()
-{
+eliminar() {
+
     archivoEliminar=$(realpath "$2")
+    contadorArchivosIguales=0
     cant=$#
-    for (( i = 3; i<=$cant; i++))
-    do
+    for ((i = 3; i <= $cant; i++)); do
         shift
         archivoEliminar+=" "
         archivoEliminar+=$2
     done
+
     papelera="${HOME}/papelera.zip"
-    if [ ! -f "$archivoEliminar" ];
-    then
+
+    if [ ! -f "$archivoEliminar" ]; then
         echo "Parámetro archivo en función eliminar no es válido"
         echo "Por favor consulte la ayuda"
         exit 1
     fi
-    if [ ! -f "$papelera" ];
-    then
-        tar -cvPf "$papelera" "$archivoEliminar" > /dev/null
+    if [ ! -f "$papelera" ]; then
+        nuevoNombre="$archivoEliminar-$contadorArchivosIguales"
+        mv "$archivoEliminar" "$nuevoNombre"
+        tar -cvPf "$papelera" "$nuevoNombre" >/dev/null
     else
-        tar -rvPf "$papelera" "$archivoEliminar" > /dev/null
+        IFS=$'\n'
+        for archivo in $(tar -tPf "$papelera"); do
+            extraerCadena "$archivo"
+            rutaArchivo=$cadenaExtraida
+
+            if [ "$rutaArchivo" == "$archivoEliminar" ]; then
+                let contadorArchivosIguales=contadorArchivosIguales+1
+            fi
+        done
+
+        nuevoNombre="$archivoEliminar-$contadorArchivosIguales"
+        mv "$archivoEliminar" "$nuevoNombre"
+        tar -rvPf "$papelera" "$nuevoNombre" >/dev/null
     fi
-    rm "$archivoEliminar"
+    rm "$nuevoNombre"
     echo "Archivo eliminado"
 }
 
 # Función listar elementos de la papelera
-listar()
-{
+listar() {
     papelera="${HOME}/papelera.zip"
 
-    if [ ! -f "$papelera" ];
-    then
+    if [ ! -f "$papelera" ]; then
         echo "Archivo papelera.zip no existe en el home del usuario"
         echo "No existe archivo a listar"
         exit 1
     fi
 
-    if [ $(tar -tPf "$papelera" | wc -c) -eq 0 ];
-    then
+    if [ $(tar -tPf "$papelera" | wc -c) -eq 0 ]; then
         echo "Papelera se encuentra vacía"
         exit 1
     fi
 
     IFS=$'\n'
-    for archivo in $(realpath $(tar -tPf "$papelera"))
-    do
+    for archivo in $(realpath $(tar -tPf "$papelera")); do
         rutaArchivo=$(dirname "$archivo")
         nombreArchivo=$(basename "$archivo")
+        extraerCadena "$nombreArchivo"
+        nombreArchivo="$cadenaExtraida"
         echo "$nombreArchivo $rutaArchivo"
     done
 }
 
 # Función vaciar papelera
-vaciar()
-{
+vaciar() {
     papelera="${HOME}/papelera.zip"
 
-    if [ ! -f "$papelera" ];
-    then
+    if [ ! -f "$papelera" ]; then
         echo "Archivo papelera.zip no existe en el home del usuario"
         echo "No existe archivo papelera a vaciar"
         exit 1
     fi
 
-    if [ $(tar -tPf "$papelera" | wc -c) -eq 0 ];
-    then
+    if [ $(tar -tPf "$papelera" | wc -c) -eq 0 ]; then
         echo "Papelera ya se encuentra vacía"
         exit 1
     fi
@@ -153,25 +160,21 @@ vaciar()
 }
 
 # Función recuperar archivo
-recuperar()
-{
+recuperar() {
     archivoParaRecuperar="$1"
     papelera="${HOME}/papelera.zip"
-    
-    if [ ! -f "$papelera" ];
-    then
+
+    if [ ! -f "$papelera" ]; then
         echo "Archivo papelera.zip no existe en el home del usuario"
         echo "No existen archivos a recuperar"
         exit 1
     fi
-    if [ $(tar -tPf "$papelera" | wc -c) -eq 0 ];
-    then
+    if [ $(tar -tPf "$papelera" | wc -c) -eq 0 ]; then
         echo "Papelera se encuentra vacía"
         echo "No se puede recuperar archivo indicado"
         exit 1
     fi
-    if [ "$archivoParaRecuperar" == "" ];
-    then
+    if [ "$archivoParaRecuperar" == "" ]; then
         echo "Parámetro archivo a recuperar sin informar"
         exit 1
     fi
@@ -182,12 +185,13 @@ recuperar()
     archivo_a_recuperar=""
 
     IFS=$'\n'
-    for archivo in $(realpath $(tar -tPf "$papelera"))
-    do
+    for archivo in $(realpath $(tar -tPf "$papelera")); do
         rutaArchivo=$(dirname "$archivo")
         nombreArchivo=$(basename "$archivo")
-        if [ "$nombreArchivo" == "$archivoParaRecuperar" ];
-        then
+        extraerCadena "$nombreArchivo"
+        nombreArchivo=$cadenaExtraida
+
+        if [ "$nombreArchivo" == "$archivoParaRecuperar" ]; then
             let contadorArchivosIguales=contadorArchivosIguales+1
             archivosIguales="$archivosIguales$contadorArchivosIguales - $nombreArchivo $rutaArchivo;"
             arrayArchivos[$contadorArchivosIguales]="$archivo"
@@ -195,178 +199,79 @@ recuperar()
         fi
     done
 
-    if [ "$contadorArchivosIguales" -eq 0 ];
-    then
+    if [ "$contadorArchivosIguales" -eq 0 ]; then
         echo "No existe el archivo en la papelera"
         exit 1
     else
-        if [ "$contadorArchivosIguales" -eq 1 ];
-        then
-            tar -xvPf "$papelera" "$archivo_a_recuperar" 1> /dev/null 
-            tar --delete --file="$papelera" "$archivo_a_recuperar" 
+        if [ "$contadorArchivosIguales" -eq 1 ]; then
+            tar -xvPf "$papelera" "$archivo_a_recuperar" 1>/dev/null
+            tar --delete --file="$papelera" "$archivo_a_recuperar"
+            extraerCadena "$archivo_a_recuperar"
+            mv "$archivo_a_recuperar" "$cadenaExtraida"
         else
             echo "$archivosIguales" | awk 'BEGIN{FS=";"} {for(i=1; i < NF; i++) print $i}'
             echo "¿Qué archivo desea recuperar?"
             read opcion
-
             seleccion="${arrayArchivos[$opcion]}"
-
-            elementoNumero=0
-            indice=0
-            IFS=$'\n'
-            for archivo in $(realpath $(tar -tPf "$papelera"))
-            do
-                let indice=$indice+1
-                if [ "$seleccion" == "$archivo" ];
-                then
-                    elementoNumero=$indice
-                fi
-            done
-            indice=0
-            IFS=$'\n'
-            for archivo in $(tar -tPf "$papelera")
-            do
-                let indice=$indice+1
-                if [ "$indice" == "$elementoNumero" ];
-                then
-                    tar -xvPf "$papelera" "$archivo" 1> /dev/null
-                    tar --delete --file="$papelera" "$archivo"
-                fi
-            done
+            tar -xvPf "$papelera" "$seleccion" 1>/dev/null
+            tar --delete --file="$papelera" "$seleccion"
+            extraerCadena "$seleccion"
+            mv "$seleccion" "$cadenaExtraida"
         fi
     fi
     echo "Archivo recuperado"
 }
 
-borrar() {
-    archivo_a_borrar="$1"
-    papelera="${HOME}/papelera.zip"
-
-    if [ ! -f "$papelera" ];
-    then
-        echo "Archivo papelera.zip no existe en el home del usuario"
-        echo "No existen archivos a eliminar"
-        exit 1
-    fi
-    if [ $(tar -tPf "$papelera" | wc -c) -eq 0 ];
-    then
-        echo "Papelera se encuentra vacía"
-        echo "No se puede eliminar archivo indicado"
-        exit 1
-    fi
-    if [ "$archivo_a_borrar" == "" ];
-    then
-        echo "Parámetro archivo a quitar de la papelera sin informar"
-        exit 1
-    fi
-
-    contadorArchivosIguales=0
-    archivosIguales=""
-    declare -a arrayArchivos
-    archivo_a_eliminar=""
-
-    IFS=$'\n'
-    for archivo in $(realpath $(tar -tPf "$papelera"))
-    do
-        rutaArchivo=$(dirname "$archivo")
-        nombreArchivo=$(basename "$archivo")
-        if [ "$nombreArchivo" == "$archivo_a_borrar" ];
-        then
-            let contadorArchivosIguales=contadorArchivosIguales+1
-            archivosIguales="$archivosIguales$contadorArchivosIguales - $nombreArchivo $rutaArchivo;"
-            arrayArchivos[$contadorArchivosIguales]="$archivo"
-            archivo_a_eliminar="$archivo"
-        fi
-    done
-
-    if [ "$contadorArchivosIguales" -eq 0 ];
-    then
-        echo "No existe el archivo en la papelera"
-        exit 1
-    else
-        if [ "$contadorArchivosIguales" -eq 1 ];
-        then
-            tar -xvPf "$papelera" "$archivo_a_eliminar" 1> /dev/null 
-            tar --delete --file="$papelera" "$archivo_a_eliminar"
-            rm "$archivo_a_eliminar"
-        else
-            echo "$archivosIguales" | awk 'BEGIN{FS=";"} {for(i=1; i < NF; i++) print $i}'
-            echo "¿Qué archivo desea eliminar?"
-            read opcion
-
-            seleccion="${arrayArchivos[$opcion]}"
-
-            elementoNumero=0
-            indice=0
-            IFS=$'\n'
-            for archivo in $(realpath $(tar -tPf "$papelera"))
-            do
-                let indice=$indice+1
-                if [ "$seleccion" == "$archivo" ];
-                then
-                    elementoNumero=$indice
-                fi
-            done
-            indice=0
-            IFS=$'\n'
-            for archivo in $(tar -tPf "$papelera")
-            do
-                let indice=$indice+1
-                if [ "$indice" == "$elementoNumero" ];
-                then
-                    tar -xvPf "$papelera" "$archivo" 1> /dev/null
-                    tar --delete --file="$papelera" "$archivo"
-                    rm "$archivo"
-                fi
-            done
-        fi
-    fi
-    echo "Archivo eliminado de la papelera"
+# Función que estrae la ruta usando un delimitador
+extraerCadena() {
+    local ruta="$1"
+    longitud=${#ruta}
+    OIFS=$IFS
+    IFS='-'
+    declare -a fields=($ruta)
+    longitudEliminar=${#fields[-1]}
+    IFS=$OIFS
+    cadenaExtraida=${ruta::$longitud-$longitudEliminar-1}
 }
 
 # Se valida parámetros
-if ([ $# -eq 0 ]);
-then
+if ([ $# -eq 0 ]); then
     echo "Error en invocar al script"
     echo "Por favor consulte la ayuda"
     exit 1
 fi
-case "$1" in 
-    "-h")
-        ayuda
-        exit 0
-        ;;
-    "-?")
-        ayuda
-        exit 0
-        ;;
-    "--help")
-        ayuda
-        exit 0
-        ;;
-    "--listar")
-        listar
-        exit 0
-        ;;
-    "--vaciar")
-        vaciar
-        exit 0
-        ;;
-    "--eliminar")
-        eliminar "$@"
-        exit 0
-        ;;
-    "--recuperar")
-        recuperar "$2"
-        exit 0
-        ;;
-    "--borrar Archivo")
-		borrar "$2"
-		exit 0
-		;;
-    *) 
-        echo "Error en invocar al script"
-        echo "Por favor consulte la ayuda"
-        exit 1
-        ;;
+case "$1" in
+"-h")
+    ayuda
+    exit 0
+    ;;
+"-?")
+    ayuda
+    exit 0
+    ;;
+"--help")
+    ayuda
+    exit 0
+    ;;
+"--listar")
+    listar
+    exit 0
+    ;;
+"--vaciar")
+    vaciar
+    exit 0
+    ;;
+"--eliminar")
+    eliminar "$@"
+    exit 0
+    ;;
+"--recuperar")
+    recuperar "$2"
+    exit 0
+    ;;
+*)
+    echo "Error en invocar al script"
+    echo "Por favor consulte la ayuda"
+    exit 1
+    ;;
 esac
