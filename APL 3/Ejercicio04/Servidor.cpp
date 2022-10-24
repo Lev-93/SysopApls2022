@@ -36,6 +36,11 @@ typedef struct {
     char rescatados[20]; //nombre del archivo que se creara cada ves que se inicie una consulta general
 }acciones;
 
+sem_t* semaforos[2];
+/*
+    0 - Servidor (solo puede haber 1)
+    1 - Memoria compartida (solo puede acceder un proceso por vez)
+*/
 
 using namespace std;
 //necesitamos un identificador para la memoria compartida para que los diferentes procesos que vayan a utilizarla tengan una manera de referenciarla
@@ -44,7 +49,7 @@ using namespace std;
 acciones accion*;
 
 bool Ayuda(const char *);
-void int_Handler(int);
+void SigR1_Handler(int);
 void ctrl_Handler(int);
 int consultarArchivo(const char[20]);
 int escribirArchivo(gato);
@@ -52,11 +57,11 @@ int modificar_Archivo(char[20]);
 gato devolver_gato(char[20]);
 void obtener_Rescatados(const char[]);
 
+void cerrarEliminarSem();
+void liberarSemaforos();
+void inicializarSemaforos();
+
 int main(){
-
-    signal(SIGINT, ctrl_Handler);
-    signal(SIGUSR1, int_Handler);
-
     /* Declaramos nuestro ID de proceso y nuestro ID de sección */
     pid_t pid, sid;
     /*
@@ -69,6 +74,14 @@ int main(){
         exit(EXIT_FAILURE);
     }
     if (pid > 0) {
+        //camino del padre
+        //cerramos los descriptores estandar
+        close(STDIN_FILENO);
+        close(STDOUT_FILENO);
+        close(STDERR_FILENO);
+        sleep(60);
+        //pasa cierto tiempo y enviamos la señal kill para que el hijo la reciba y este termine su ejecución.
+        kill (pid, SIGUSR1);
         exit(EXIT_SUCCESS);
     }
 
@@ -134,9 +147,23 @@ int main(){
     // con esto ya no estara relacionado más a la memoria compartida. Quizas cambiarlo ya que tendremos que cerrarla cuando se envie la señal
     munmap(memoria, sizeof(acciones));
 
+    //Manejo de señales, cuando se reciban algunas de las dos señales se ejecutara su correspondiente función.
+    signal(SIGUSR1, SigR1_Handler);
+    //si esta la señal Ctrl+c la ignora.
+    signal(SIGINT,SIG_IGN);
+
     while (1) {
         
-        while(memoria->alta == 0 && memoria->baja == 0 && memoria->consultar == 0);
+        while(memoria->alta == 0 && memoria->baja == 0 && memoria->consultar == 0){
+            /*
+            if(signal(SIGUSR1, int_Handler) != SIG_ERR){
+                exit(EXIT_SUCCESS);
+            }
+            if(signal(SIGINT, ctrl_Handler) != SIG_ERR){
+
+            }
+            */
+        }
 
         if(memoria->alta == 1){
             if(escribirArchivo(memoria->g) == -1){
@@ -146,8 +173,12 @@ int main(){
         }
 
         if(memoria->baja == 1){
-            if(modificar_Archivo(memoria->g.nombre) == -1){
+            int res = modificar_Archivo(memoria->g.nombre);
+            if(res == -1){
                 strcpy(memoria->notibaja,"El gato no se encuentra registrado, vuelva a intentarlo");
+            }
+            if(res == -2){
+                strcpy(memoria->notibaja,"El gata ya estaba de baja");
             }
             memoria->baja = 0;
         }
@@ -172,7 +203,7 @@ int main(){
    exit(EXIT_SUCCESS);
 }
 
-void int_Handler(int signum)
+void SigR1_Handler(int signum)    //en esta función liberamos y destruimos todo recurso utilizable por el servidor como por el cliente.
 {
     /*
     liberarSemaforos();
@@ -182,10 +213,7 @@ void int_Handler(int signum)
     shmctl(shmid,IPC_RMID,NULL);
     exit(0);
     */
-}
-
-void ctrl_Handler(int signum){
-
+   exit(EXIT_SUCCESS);
 }
 
 bool Ayuda(const char *cad)
@@ -245,18 +273,60 @@ int escribirArchivo(gato g){
 }
 
 int modificar_Archivo(char nombre[20]){
-    ofstream archivo;
+    int pos = consultarArchivo(g.nombre);
+    string texto;
+    chat gatito[60];
+    char *pch;
+    if(pos < 1){
+        return -1;  //si no existe, se debe escribir el mensaje en memoria->notibaja que el nombre del gato no se encuentra registrado.
+    }
+    ifstream archivo;
+    archivo.open("gatos.txt",ios::in);
     if(archivo.fail()){
         cout << "no se pudo abrir el archivo" << endl;
         exit(1);
     }
-    if(consultarArchivo(g.nombre) < 1){
-        return -1;  //si no existe, se debe escribir el mensaje en memoria->notibaja que ya esta el nombre usado y este es único.
-    }
-
     //cambiamos el ALTA, por BAJA en dicho gato
-
+    ofstream auxiliar;
+    auxiliar.open("auxiliar.txt",ios::out);
+    if(auxiliar.fail()){
+        cout << "no se pudo abrir el archivo auxiliar" << endl;
+        archivo.close();
+        exit(1);
+    }
+    int cont = 0;
+    while(!archivo.eof()){
+        getline(archivo,texto);
+        strcpy(gatito,texto.c_str());
+        //aqui obtenemos la situacion del gato
+        if(pos == cont){    // es el gato a cambiar la situacion de ALTA a BAJA
+            char situacionvieja[20] = strtok(gatito,"|");
+            if(strcmp(situacionvieja,"BAJA") == 0){
+                archivo.close();
+                auxiliar.close();
+                remove("auxiliar.txt");
+                return -2;
+            }
+            else{
+                char nombregato[20] = strtok(NULL,"|");
+                char raza[20] = strtok(NULL,"|");
+                char sexo[2] = strtok(NULL,"|");
+                char estado[2] = strtok(NULL,"|");
+                auxiliar << "BAJA" + "|" + nombregato + "|" + raza + "|" + sexo + "|" + estado << endl;
+            }
+        }
+        else{
+            auxiliar << gatito << endl;
+        }
+        pch = strtok(gatito, "|");
+        //aqui obtenemos el nombre del gato
+        pch = strtok(NULL, "|");
+        cont++;
+    }
     archivo.close();
+    auxiliar.close();
+    remove(archivo);
+    rename("auxiliar.txt","gatos.txt");
     return 0;
 }
 
@@ -301,7 +371,7 @@ gato devolver_gato(char nombre[20]){
     return NULL;
 }
 
-void obtener_Rescatados(const[] path){
+void obtener_Rescatados(const char[] path){
     ifstream archivo1;
     ofstream archivo2;
     string texto;
@@ -330,4 +400,17 @@ void obtener_Rescatados(const[] path){
     }
     archivo1.close();
     archivo2.close();
+}
+
+
+void cerrarEliminarSem(){
+
+}
+
+void liberarSemaforos(){
+
+}
+
+void inicializarSemaforos(){
+
 }
