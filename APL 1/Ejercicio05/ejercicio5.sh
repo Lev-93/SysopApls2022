@@ -4,7 +4,7 @@
 # Nombre del script: ejercicio5.sh
 # Número de ejercicio: 5
 # Trabajo Práctico: 1
-# Entrega: Primera entrega
+# Entrega: Tercera Entrega
 
 # ==============================================================
 
@@ -19,174 +19,130 @@
 # -------------------------------------------------------------
 
 function help(){
-    echo "Es importante saber que los parametros -n y -m son OBLIGATORIOS"
+    echo "Es importante saber que los parametros --notas y --materias son OBLIGATORIOS"
     echo "Para poder utilizar este script"
     echo "Debemos tener en cuenta lo siguiente"
-    echo "-n es la ruta del archivo a procesar."
-    echo "-m es la ruta del archivo con los datos de las materias que quiera"
+    echo "--notas es la ruta del archivo a procesar."
+    echo "--materias es la ruta del archivo con los datos de las materias que quiera"
     echo "a continuacion se pondran ejemplos de recopilaciones:"
-    echo "./ejercicio5.sh -n ./notas.txt -m ./materias.txt"
+    echo "./ejercicio5.sh --notas ./notas.txt --materias ./materias.txt"
+    echo "tambien puede probar un ejemplo con un archivo desordenado"
+    echo "./ejercicio5.sh --notas ./notas.txt --materias ./materias2.txt"
     echo "recorda que los parametros son unicos y solo debe haber un parametro de cada seccion"
 }
 
 function errorParam(){
-    echo "Cantidad de parametros erronea, recuerde que siempre puede utilizar -h para solicitar asistencia de uso"
+    echo "Cantidad de parametros erronea, recuerde que siempre puede utilizar -h o --help para solicitar asistencia de uso"
 }
 
-# while getopts "n:m:h" option
-# do
-#     case "$option" in
-#         n)  
-#             if [[ $# -ne 2 ]]
-#             then
-#                 errorParam
-#                 help
-#                 exit
-#             fi
+function validar() {
 
-#             if [ $notasexiste -eq 0 ]
-#             then
-#                 notasexiste=1
-#                 not=${OPTARG}
-#                 if [ ! -f "$not" ]
-#                 then   
-#                     echo "No existe el archivo"
-#                     exit 1
-#                 elif [ ! -r "$not" ]
-#                 then
-#                     echo "$not no tiene permiso de lectura"
-#                     exit 1
-#                 fi
-#                 if [ ! "$(ls -A $not)" ]; 
-#                 then
-#                     echo "El directorio de entrada $not esta vacio, ingrese otro directorio con archivos"
-#                     exit 1
-#                 fi
-#             else
-           
-#                 errorParam 
-#                 exit 0
-#             fi
-           
-#             ;;
-#         m)  
-#             if [[ $# -ne 2 ]]
-#             then
-#                 errorParam
-#                 help
-#                 exit
-#             fi
+    if [[ "$#" -eq 0 ]]
+    then
+        errorParam
+        help
+        exit 1
+    fi
 
-#             if [ $materiasexiste -eq 0 ]
-#             then
-#                 materiasexiste=1
-#                 mat=${OPTARG}
-
-#                 if [ ! -f "$mat" ]
-#                 then   
-#                     echo "No existe el archivo"
-#                     exit 1
-#                 elif [ ! -r "$mat" ]
-#                 then
-#                     echo "$mat no tiene permiso de lectura"
-#                     exit 1
-#                 fi
-#                 if [ ! "$(ls -A $mat)" ]; 
-#                 then
-#                     echo "El directorio de entrada $mat esta vacio, ingrese otro directorio con archivos"
-#                     exit 1
-#                 fi
-#             else
-           
-#                 errorParam 
-#                 exit 0
-#             fi
-           
-#             ;;
-#         h)
-#             help
-#             exit 0
-#             ;;
-#     esac
-
-# done
-
-validar() {
-
-    ruta1=`readlink -e "$1"`
-    ruta2=`readlink -e "$2"`
-
-	if [ ! -f "$1" ];
-	then
-		echo "Error: \"$1\" no es un fichero"
-		exit 1
-	fi
+    if [[ "$#" -eq 3 ]]
+    then
+        errorParam
+        help
+        exit 1
+    fi
+	# if [ ! -f "$1" ];
+	# then
+	# 	echo "Error: \"$1\" no es un fichero"
+	# 	exit 1
+	# fi
 	
-	if [ ! -r "$1" ];
-	then
-		echo "Error, \"$1\" no tiene permisos de lectura"
-		exit 1
-	fi
+	# if [ ! -r "$1" ];
+	# then
+	# 	echo "Error, \"$1\" no tiene permisos de lectura"
+	# 	exit 1
+	# fi
 
-	if [ ! -w "$1" ];
-	then
-		echo "Error, \"$1\" no tiene permisos de escritura"
-		exit 1
-	fi
+	# if [ ! -w "$1" ];
+	# then
+	# 	echo "Error, \"$1\" no tiene permisos de escritura"
+	# 	exit 1
+	# fi
 
-	if [ ! -f "$2" ];
-	then
-		echo "Error: \"$2\" no es un fichero"
-		exit 1
-	fi
+	# if [ ! -f "$2" ];
+	# then
+	# 	echo "Error: \"$2\" no es un fichero"
+	# 	exit 1
+	# fi
 	
-	if [ ! -r "$2" ];
-	then
-		echo "Error, \"$2\" no tiene permisos de lectura"
-		exit 1
-	fi
+	# if [ ! -r "$2" ];
+	# then
+	# 	echo "Error, \"$2\" no tiene permisos de lectura"
+	# 	exit 1
+	# fi
 
-	if [ ! -w "$2" ];
-	then
-		echo "Error, \"$2\" no tiene permisos de escritura"
-		exit 1
-	fi
+	# if [ ! -w "$2" ];
+	# then
+	# 	echo "Error, \"$2\" no tiene permisos de escritura"
+	# 	exit 1
+	# fi
 }
 
-while getopts "n:m:h" option
-do
-    case "$option" in
-        n)  
-            if [[ "$#" -ne 4 ]]
-            then
-                errorParam
-                help
-                exit
-            fi
+# validar
 
-            validar "$2" "$4"
-            notas="${OPTARG}"
-            lengthNotas=$(cat ${OPTARG} | wc -l)
+
+ARGUMENT_LIST=(
+  "notas"
+  "materias"
+  "help"
+)
+
+opts=$(getopt \
+  --longoptions "notas:,materias:,help" \
+  --name "$(basename "$0")" \
+  --options "h" \
+  -- "$@"
+)
+
+if [ "$#" == "0" ]
+then
+    errorParam
+    help
+    exit 1
+fi
+
+eval set --$opts
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+        --notas)  
+            notas="$2"
+            lengthNotas=$(cat $2 | wc -l)
+            shift 2
             ;;
-        m)  
-
-            if [[ $# -ne 4 ]]
-            then
-                errorParam
-                help
-                exit
-            fi
-
-            validar "$2" "$4"
-            materias="${OPTARG}"
-            lengthMaterias=$(cat ${OPTARG} | wc -l)
+        --materias)  
+            materias="$2"
+            lengthMaterias=$(cat $2 | wc -l)
+            shift 2
             ;;
-        h)  
+        --help)  
             help
             exit 0
+            ;;
+        -h)
+            help
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            help
+            exit 1
             ;;
     esac
 done
 
-# awk -F, -f ejercicio5.awk $notas $materias > "./salida.json"
+sort -k 3 -t "|" -n "$materias" > /dev/null
+
 awk -v variable1="$lengthNotas" -v variable2="$lengthMaterias" -F, -f ejercicio5.awk $notas $materias > "./salida.json"
