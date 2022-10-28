@@ -1,0 +1,9 @@
+IdMateria|Descripcion|Departamento
+1|Sistemas Operativos|1
+5|Derecho 3|5
+2|Programacion 1|1
+7|Derecho novecientos|7
+4|Derecho 2|3
+6|Derecho 4|6
+3|Derecho 1|2
+10|Boca|9
