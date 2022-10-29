@@ -1,95 +1,98 @@
 {
     "departamentos": [
+        [
         {
             "id": 1,
             "notas": [
-                 {
+                {
                          "id_materia": 1,
                          "descripcion": "Sistemas Operativos",
                          "final": 1,
                          "recursan": 0,
                          "abandonaron": 1,
                          "promocionan": 1
-                 }
-             ]
-        },
-        {
-            "id": 1,
-            "notas": [
-                 {
+                },
+                {
                          "id_materia": 2,
                          "descripcion": "Programacion 1",
                          "final": 0,
                          "recursan": 1,
                          "abandonaron": 0,
                          "promocionan": 0
-                 }
-             ]
-        },
+                }
+           ]},
         {
             "id": 2,
             "notas": [
-                 {
+                {
                          "id_materia": 3,
                          "descripcion": "Derecho 1",
                          "final": 0,
                          "recursan": 0,
                          "abandonaron": 0,
                          "promocionan": 0
-                 }
-             ]
-        },
+                }
+           ]},
         {
             "id": 3,
             "notas": [
-                 {
+                {
                          "id_materia": 4,
                          "descripcion": "Derecho 2",
                          "final": 0,
                          "recursan": 0,
                          "abandonaron": 0,
                          "promocionan": 0
-                 }
-             ]
-        },
+                }
+           ]},
         {
             "id": 5,
             "notas": [
-                 {
+                {
                          "id_materia": 5,
                          "descripcion": "Derecho 3",
                          "final": 0,
                          "recursan": 0,
                          "abandonaron": 0,
                          "promocionan": 1
-                 }
-             ]
-        },
+                }
+           ]},
         {
             "id": 6,
             "notas": [
-                 {
+                {
                          "id_materia": 6,
                          "descripcion": "Derecho 4",
                          "final": 0,
                          "recursan": 0,
                          "abandonaron": 2,
                          "promocionan": 0
-                 }
-             ]
-        },
+                }
+           ]},
+        {
+            "id": 9,
+            "notas": [
+                {
+                         "id_materia": 10,
+                         "descripcion": "Boca",
+                         "final": 0,
+                         "recursan": 0,
+                         "abandonaron": 0,
+                         "promocionan": 0
+                }
+           ]},
         {
             "id": 7,
             "notas": [
-                 {
+                {
                          "id_materia": 7,
                          "descripcion": "Derecho novecientos",
                          "final": 0,
                          "recursan": 0,
                          "abandonaron": 0,
                          "promocionan": 0
-                 }
-             ]
-        }
-     ]
+                }
+            ]}
+        ]
+    ]
 }

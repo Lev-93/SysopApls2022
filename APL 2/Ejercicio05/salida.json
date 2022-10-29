@@ -1,0 +1,105 @@
+{
+    "departamentos":  [
+                          [
+                              {
+                                  "id":  1,
+                                  "notas":  [
+                                                {
+                                                    "id_materia":  2,
+                                                    "descripcion":  "Programacion 1",
+                                                    "promocionan":  0,
+                                                    "abandonaron":  0,
+                                                    "recursan":  1,
+                                                    "final":  0
+                                                },
+                                                {
+                                                    "id_materia":  1,
+                                                    "descripcion":  "Sistemas Operativos",
+                                                    "promocionan":  1,
+                                                    "abandonaron":  1,
+                                                    "recursan":  0,
+                                                    "final":  1
+                                                }
+                                            ]
+                              },
+                              {
+                                  "id":  2,
+                                  "notas":  [
+                                                {
+                                                    "id_materia":  3,
+                                                    "descripcion":  "Derecho 1",
+                                                    "promocionan":  0,
+                                                    "abandonaron":  0,
+                                                    "recursan":  0,
+                                                    "final":  0
+                                                }
+                                            ]
+                              },
+                              {
+                                  "id":  3,
+                                  "notas":  [
+                                                {
+                                                    "id_materia":  4,
+                                                    "descripcion":  "Derecho 2",
+                                                    "promocionan":  0,
+                                                    "abandonaron":  0,
+                                                    "recursan":  0,
+                                                    "final":  0
+                                                }
+                                            ]
+                              },
+                              {
+                                  "id":  5,
+                                  "notas":  [
+                                                {
+                                                    "id_materia":  5,
+                                                    "descripcion":  "Derecho 3",
+                                                    "promocionan":  1,
+                                                    "abandonaron":  0,
+                                                    "recursan":  0,
+                                                    "final":  0
+                                                }
+                                            ]
+                              },
+                              {
+                                  "id":  6,
+                                  "notas":  [
+                                                {
+                                                    "id_materia":  6,
+                                                    "descripcion":  "Derecho 4",
+                                                    "promocionan":  0,
+                                                    "abandonaron":  2,
+                                                    "recursan":  0,
+                                                    "final":  0
+                                                }
+                                            ]
+                              },
+                              {
+                                  "id":  7,
+                                  "notas":  [
+                                                {
+                                                    "id_materia":  7,
+                                                    "descripcion":  "Derecho novecientos",
+                                                    "promocionan":  1,
+                                                    "abandonaron":  0,
+                                                    "recursan":  0,
+                                                    "final":  0
+                                                }
+                                            ]
+                              },
+                              {
+                                  "id":  9,
+                                  "notas":  [
+                                                {
+                                                    "id_materia":  10,
+                                                    "descripcion":  "Boca",
+                                                    "promocionan":  0,
+                                                    "abandonaron":  0,
+                                                    "recursan":  0,
+                                                    "final":  0
+                                                }
+                                            ]
+                              }
+                          ]
+                      ]
+}

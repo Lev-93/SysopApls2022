@@ -5,5 +5,5 @@ IdMateria|Descripcion|Departamento
 4|Derecho 2|3
 5|Derecho 3|5
 6|Derecho 4|6
-10|Boca|9
 7|Derecho novecientos|7
+10|Boca|9
