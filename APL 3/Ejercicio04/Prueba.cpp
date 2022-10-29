@@ -79,9 +79,9 @@ int main(){
 	for(i=0;i< NOFILE;close(i++));
 
     // Cambia el directorio de trabajo para que el proceso no contacte con ningún sistema de archivos
-    if ((chdir("/")) < 0) {
-        exit(EXIT_FAILURE);
-    }    
+    //if ((chdir("/")) < 0) {
+      //  exit(EXIT_FAILURE);
+    //}    
 
 	// Establece la palabra de protección del archivo en 0 en el momento
 	umask(0);
@@ -90,7 +90,6 @@ int main(){
 	signal(SIGCHLD,SIG_IGN); 
 
     while(1){
-        /*
         ofstream archivo;
         archivo.open("demonPrueba.txt",ios::app); // abre o crea el archivo
         if(archivo.fail()){
@@ -99,7 +98,7 @@ int main(){
         }
         archivo << "Ejecutando el demonio" << endl;
         archivo.close();
-        */
+        sleep(5);
     }
 }
 

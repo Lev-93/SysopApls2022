@@ -16,14 +16,19 @@
 #include <string.h>
 #include <sys/types.h>
 #include <linux/fs.h>
+#include <sys/param.h>
+#include <time.h>
+#include <syslog.h>
+
 
 typedef struct {
-    char situacion[4]; // ALTA (ingreso/rescatado) BAJA (adopcion/egreso)
-    char nombre[20];
-    char raza[20];
-    char sexo;    // M o H
-    char estado[2]; // CA (castrado) o SC (sin castrar) 
+    char situacion[5]; // ALTA (ingreso/rescatado) BAJA (adopcion/egreso)
+    char nombre[21];
+    char raza[21];
+    char sexo[2];    // M o H
+    char estado[3]; // CA (castrado) o SC (sin castrar) 
 }gato;
+
 
 typedef struct {
 	int baja;
@@ -36,103 +41,112 @@ typedef struct {
     char rescatados[20]; //nombre del archivo que se creara cada ves que se inicie una consulta general
 }acciones;
 
-sem_t* semaforos[2];
+sem_t* semaforos[5];
 /*
-    0 - Servidor (solo puede haber 1)
-    1 - Memoria compartida (solo puede acceder un proceso por vez)
+    0 - Servidor (solo puede haber 1) se inicia en 1 y rapidamente se ocupa por el primer demonio. se liberara cuando el servidor demonio sea detenido
+    1 - MC, (solo puede acceder un proceso por vez) se inicia en 1
+    2 - Cliente, el cual se liberara justo antes de comenzar el bucle infinito, se inicia en 0.
+    3 - TS, iniciara en 0 y solo se liberara cuando el cliente termine su actividad
+    4 - TC, iniciara en 0, y se liberara antes de comenzar el bucle y al finalizar un ciclo de dicho bucle. 
 */
 
 using namespace std;
 //necesitamos un identificador para la memoria compartida para que los diferentes procesos que vayan a utilizarla tengan una manera de referenciarla
 #define NombreMemoria "miMmemoria"
 
-acciones accion*;
+acciones* accion;
 
-bool Ayuda(const char *);
-void SigR1_Handler(int);
-void ctrl_Handler(int);
-int consultarArchivo(const char[20]);
-int escribirArchivo(gato);
-int modificar_Archivo(char[20]);
-gato devolver_gato(char[20]);
-void obtener_Rescatados(const char[]);
-
+/***********************************Semaforos**********************************/
 void cerrarEliminarSem();
 void liberarSemaforos();
 void inicializarSemaforos();
+/***********************************Semaforos**********************************/
 
-int main(){
-    /* Declaramos nuestro ID de proceso y nuestro ID de sección */
-    pid_t pid, sid;
-    /*
-        Al usar el comando fork el padre obtendra un PID del hijo mientras que el hijo obtendra un 0
-        si el valor lanzado por el fork es menor a 0 entonces hubo algun error...
-        mientras que el padre cierra exitosamente, el hijo quedara ejecutando.
-    */
-    pid = fork();
-    if (pid < 0) {
-        exit(EXIT_FAILURE);
-    }
-    if (pid > 0) {
-        //camino del padre
-        //cerramos los descriptores estandar
-        close(STDIN_FILENO);
-        close(STDOUT_FILENO);
-        close(STDERR_FILENO);
-        sleep(60);
-        //pasa cierto tiempo y enviamos la señal kill para que el hijo la reciba y este termine su ejecución.
-        kill (pid, SIGUSR1);
+/***********************************Recursos**********************************/
+void liberar_Recursos(int);
+/***********************************Recursos**********************************/
+
+
+/***********************************Archivos**********************************/
+bool Ayuda(const char *);
+int consultarArchivo(const char[20]);
+int escribirArchivo(gato*);
+int modificar_Archivo(const char[20]);
+gato* devolver_gato(char[20]);
+int obtener_Rescatados(const char*);
+/***********************************Archivos**********************************/
+
+/***********************************Memoria compartida**********************************/
+acciones* abrir_mem_comp();
+void cerrar_mem_comp(acciones*);
+/***********************************Memoria compartida**********************************/
+
+int main(int argc, char *argv[]){
+
+    if((strcmp(argv[1],"-h") == 0 || strcmp(argv[1],"--help") == 0) && argc == 2){
+        Ayuda(argv[1]);
         exit(EXIT_SUCCESS);
     }
 
-    /* a partir de aqui comienza la ejecución del proceso hijo */
+    pid_t pid, sid;
+    int i;
 
-    /* Con umask garantizas que se puedan leer y escribir correctamente los archivos creado por el demonio */
-    umask(0);
 
-    /* aqui abrimos los registros para escritura*/       
-                
-    /* Create a new SID for the child process */
-    /*
-        con setid le damos al proceso secundario un SID unico del kernel para poder operar,
-        sino lo ponemos, el proceso queda como un proceso huerfano en el sistema,
-        usamos la variable "sid" para crear un nuevo SID para el proceso hijo
-        El sid tiene el mismo retorno que el fork por lo que el manejo de este es similar,
-        si el valor es menor a 0 hubo un error.
-    */
+
+    // Ignora la señal de E / S del terminal, señal de PARADA
+	signal(SIGTTOU,SIG_IGN);
+	signal(SIGTTIN,SIG_IGN);
+	signal(SIGTSTP,SIG_IGN);
+	signal(SIGHUP,SIG_IGN);
+
+    pid = fork();
+    if (pid < 0) {
+        exit(EXIT_FAILURE); // Finaliza el proceso padre, haciendo que el proceso hijo sea un proceso en segundo plano
+    }
+    if (pid > 0) {
+        exit(EXIT_SUCCESS);
+    }
+
+    //umask(0);
+    
+    // Cree un nuevo grupo de procesos, en este nuevo grupo de procesos, el proceso secundario se convierte en el primer proceso de este grupo de procesos, de modo que el proceso se separa de todos los terminales    
+
     sid = setsid();
+
     if (sid < 0) {
          exit(EXIT_FAILURE);
     }
-        
-    /* Cambiamos el directorio de trabajo actual por uno que garantize que siempre estara alli
-        por lo tanto lo cambiamos por el directorio raíz,
-        si ocurre alguna falla cerramos el programa */
-    if ((chdir("/")) < 0) {
-        exit(EXIT_FAILURE);
-    }
-        
-    /* Debemos cerrar los descriptores estandar, ya que un demonio no puede usar una terminal */
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
-        
-    /* A partir de aqui comenzamos con el código de enunciado */
 
-    /* creamos el archivo que contendrá toda la información acerca de cada gato que quiera adoptarse */
+	// Cree un nuevo proceso hijo nuevamente, salga del proceso padre, asegúrese de que el proceso no sea el líder del proceso y haga que el proceso no pueda abrir una nueva terminal
+	pid=fork();
+	if( pid > 0) {
+		exit(EXIT_SUCCESS);
+	}
+	else if( pid< 0) {
+		exit(EXIT_FAILURE);
+	}
 
-    ofstream archivo;
-    archivo.open("gatos.txt",ios::out); // abre o crea el archivo
-    if(archivo.fail()){
-        cout << "no se pudo abrir el archivo" << endl;
-        exit(1);
-    }
-    archivo.close();
+    /* close(STDIN_FILENO); close(STDOUT_FILENO); close(STDERR_FILENO); */
+
+     
+	// Cierre todos los descriptores de archivos heredados del proceso padre que ya no son necesarios
+	for(i=0;i< NOFILE;close(i++));
+
+    // Cambia el directorio de trabajo para que el proceso no contacte con ningún sistema de archivos
+    //if ((chdir("/")) < 0) {
+      //  exit(EXIT_FAILURE);
+    //}    
+
+	// Establece la palabra de protección del archivo en 0 en el momento
+	umask(0);
+
+    //P(Servidor)
 
     /*************************************************************************************************/
     
+    //P(MC)
     //crear la memoria compartida
-    int idMemoria = shm_open(NombreMemoria, 0_CREAT | 0_RDWR, 0600); // obtenemos un numero que nos identifica esta memoria.
+    int idMemoria = shm_open(NombreMemoria, O_CREAT | O_RDWR, 0600); // obtenemos un numero que nos identifica esta memoria.
     //me va a determinar/setear el tamaño de la memoria, asociara los tamaños y nos limpiara un poco lo que hay allí dentro.
     ftruncate(idMemoria,sizeof(acciones));
 
@@ -146,74 +160,90 @@ int main(){
 
     // con esto ya no estara relacionado más a la memoria compartida. Quizas cambiarlo ya que tendremos que cerrarla cuando se envie la señal
     munmap(memoria, sizeof(acciones));
+    //V(MC)
 
     //Manejo de señales, cuando se reciban algunas de las dos señales se ejecutara su correspondiente función.
-    signal(SIGUSR1, SigR1_Handler);
+    signal(SIGUSR1, liberar_Recursos);
     //si esta la señal Ctrl+c la ignora.
     signal(SIGINT,SIG_IGN);
 
+    //V(Cliente) // A partir de aqui ya podran operar los clientes.
+    //V(TC)
     while (1) {
-        
-        while(memoria->alta == 0 && memoria->baja == 0 && memoria->consultar == 0){
-            /*
-            if(signal(SIGUSR1, int_Handler) != SIG_ERR){
-                exit(EXIT_SUCCESS);
-            }
-            if(signal(SIGINT, ctrl_Handler) != SIG_ERR){
-
-            }
-            */
-        }
-
+        // P (TS) Turno del servidor, inicia el 0 y solo tendra un 1 de valor una ves que termine de ejecutar algun proceso cliente.
+        // P(MC) Bloqueamos la memoria compartida.
+        acciones *memoria = abrir_mem_comp();
         if(memoria->alta == 1){
-            if(escribirArchivo(memoria->g) == -1){
+            gato *aux = (gato*)malloc(sizeof(gato));
+            strcpy(aux->situacion,memoria->g.situacion);
+            strcpy(aux->nombre,memoria->g.nombre);
+            strcpy(aux->raza,memoria->g.raza);
+            strcpy(aux->estado,memoria->g.estado);
+            strcpy(aux->sexo,memoria->g.sexo);
+            if(escribirArchivo(aux) == -1){
                 strcpy(memoria->notialta,"El nombre ya existe, pruebe con otro");
             }
+            strcpy(memoria->g.situacion,"");
+            strcpy(memoria->g.nombre,"");
+            strcpy(memoria->g.raza,"");
+            strcpy(memoria->g.sexo,"");
+            strcpy(memoria->g.estado,"");
             memoria->alta = 0;
         }
-
         if(memoria->baja == 1){
             int res = modificar_Archivo(memoria->g.nombre);
             if(res == -1){
                 strcpy(memoria->notibaja,"El gato no se encuentra registrado, vuelva a intentarlo");
             }
             if(res == -2){
-                strcpy(memoria->notibaja,"El gata ya estaba de baja");
+                strcpy(memoria->notibaja,"El gato ya estaba de baja");
             }
+            strcpy(memoria->g.nombre,"");
             memoria->baja = 0;
         }
-
         if(memoria->consultar == 1){
             if(strcmp(memoria->consulta,"") != 0){ //significa que se ingreso el nombre
-                if(consultarArchivo(memoria->consulta) == -1){
+                int pos = consultarArchivo(memoria->consulta);
+                if(pos == -1 || pos == -2)
                     strcpy(memoria->consulta,"El gato no se encuentra registrado");
-                }
-                else{   //si el gato si fue encontrado...
-                    memoria->g = devolver_gato(memoria->consulta);
+                else{ //si el gato si fue encontrado...
+                    gato *aux = devolver_gato(memoria->consulta);
+                    strcpy(memoria->g.situacion,aux->situacion);
+                    strcpy(memoria->g.nombre,aux->nombre);
+                    strcpy(memoria->g.raza,aux->raza);
+                    strcpy(memoria->g.sexo,aux->sexo);
+                    strcpy(memoria->g.estado,aux->estado);
                 }
             }
             else{ //mostrar toda la tabla de TODOS LOS GATOS RESCATADOS, es decir, los que poseen ALTA
-                obtener_Rescatados(memoria->rescatados);
+                int res = obtener_Rescatados(memoria->rescatados);
+                if(res == -2 || res == -1)
+                    strcpy(memoria->consulta,"No se encuentran gatos registrados");
             }
             memoria->consultar = 0;
         }
-
+        cerrar_mem_comp(memoria);
+        //V(MC)
+        // V(TC)
         sleep(5); /* wait 5 seconds */
     }
    exit(EXIT_SUCCESS);
 }
 
-void SigR1_Handler(int signum)    //en esta función liberamos y destruimos todo recurso utilizable por el servidor como por el cliente.
-{
-    /*
-    liberarSemaforos();
-    usleep(1000000);
-    cerrarEliminarSem();
-    shmdt(datoPartida);
-    shmctl(shmid,IPC_RMID,NULL);
-    exit(0);
-    */
-   exit(EXIT_SUCCESS);
+void cerrarEliminarSem(){
+
+}
+
+void liberarSemaforos(){
+
+}
+
+void inicializarSemaforos(){
+
+}
+
+void liberar_Recursos(int signum){
+
 }
 
 bool Ayuda(const char *cad)
@@ -230,14 +260,13 @@ int consultarArchivo(const char nombre[20]){
     gato g;
     ifstream archivo;
     string texto;
-    chat gatito[60];
+    char gatito[60];
     char *pch;
     archivo.open("gatos.txt",ios::in);
     if(archivo.fail()){
         cout << "no se pudo abrir el archivo" << endl;
-        exit(1);
+        return -2;
     }
-
     int cont = 0;
 
     while(!archivo.eof()){
@@ -257,8 +286,8 @@ int consultarArchivo(const char nombre[20]){
     return -1;
 }
 
-int escribirArchivo(gato g){
-    if(consultarArchivo(g.nombre) >= 0){
+int escribirArchivo(gato *g){
+    if(consultarArchivo(g->nombre) >= 0){
         return -1;  //si ya esta, se debe escribir el mensaje en memoria->notialta que ya esta el nombre usado y este es único.
     }
     ofstream archivo;
@@ -267,30 +296,32 @@ int escribirArchivo(gato g){
         cout << "no se pudo abrir el archivo" << endl;
         exit(1);
     }
-    archivo << g.situacion + "|" + g.nombre + "|" + g.raza + "|" + g.sexo + "|" + g.estado << endl;
+    string tmp_situacion(g->situacion);
+    string tmp_nombre(g->nombre);
+    string tmp_raza(g->raza);
+    string tmp_sexo(g->sexo);
+    string tmp_estado(g->estado);
+    archivo << tmp_situacion + "|" + tmp_nombre + "|" + tmp_raza + "|" + tmp_sexo + "|" + tmp_estado;
     archivo.close();
     return 1;
 }
 
-int modificar_Archivo(char nombre[20]){
-    int pos = consultarArchivo(g.nombre);
+int modificar_Archivo(const char nombre[20]){
+    int pos = consultarArchivo(nombre);
     string texto;
-    chat gatito[60];
+    char gatito[60];
     char *pch;
-    if(pos < 1){
+    if(pos < 0){
         return -1;  //si no existe, se debe escribir el mensaje en memoria->notibaja que el nombre del gato no se encuentra registrado.
     }
     ifstream archivo;
     archivo.open("gatos.txt",ios::in);
-    if(archivo.fail()){
-        cout << "no se pudo abrir el archivo" << endl;
+    if(archivo.fail())
         exit(1);
-    }
     //cambiamos el ALTA, por BAJA en dicho gato
     ofstream auxiliar;
     auxiliar.open("auxiliar.txt",ios::out);
     if(auxiliar.fail()){
-        cout << "no se pudo abrir el archivo auxiliar" << endl;
         archivo.close();
         exit(1);
     }
@@ -300,7 +331,7 @@ int modificar_Archivo(char nombre[20]){
         strcpy(gatito,texto.c_str());
         //aqui obtenemos la situacion del gato
         if(pos == cont){    // es el gato a cambiar la situacion de ALTA a BAJA
-            char situacionvieja[20] = strtok(gatito,"|");
+            char *situacionvieja = strtok(gatito,"|");
             if(strcmp(situacionvieja,"BAJA") == 0){
                 archivo.close();
                 auxiliar.close();
@@ -308,15 +339,19 @@ int modificar_Archivo(char nombre[20]){
                 return -2;
             }
             else{
-                char nombregato[20] = strtok(NULL,"|");
-                char raza[20] = strtok(NULL,"|");
-                char sexo[2] = strtok(NULL,"|");
-                char estado[2] = strtok(NULL,"|");
-                auxiliar << "BAJA" + "|" + nombregato + "|" + raza + "|" + sexo + "|" + estado << endl;
+                char *nombregato = strtok(NULL,"|");
+                char *raza = strtok(NULL,"|");
+                char *sexo = strtok(NULL,"|");
+                char *estado = strtok(NULL,"|");
+                string tmp_nombregato(nombregato);
+                string tmp_raza(raza);
+                string tmp_sexo(sexo);
+                string tmp_estado(estado);
+                auxiliar << "BAJA|" + tmp_nombregato+ "|" + tmp_raza + "|" + tmp_sexo + "|" + tmp_estado;
             }
         }
         else{
-            auxiliar << gatito << endl;
+            auxiliar << texto;
         }
         pch = strtok(gatito, "|");
         //aqui obtenemos el nombre del gato
@@ -325,13 +360,13 @@ int modificar_Archivo(char nombre[20]){
     }
     archivo.close();
     auxiliar.close();
-    remove(archivo);
+    remove("gatos.txt");
     rename("auxiliar.txt","gatos.txt");
     return 0;
 }
 
-gato devolver_gato(char nombre[20]){
-    gato g;
+gato* devolver_gato(char nombre[20]){
+    gato *g = (gato*) malloc(sizeof(gato));
     ifstream archivo;
     string texto;
     char gatito[60];
@@ -353,14 +388,14 @@ gato devolver_gato(char nombre[20]){
         strcpy(situacion,pch);
         pch = strtok(NULL, "|");
         if(strcmp(nombre,pch) == 0){
-            strcpy(g.situacion,situacion);
-            strcpy(g.nombre,pch);
+            strcpy(g->situacion,situacion);
+            strcpy(g->nombre,pch);
             pch = strtok(NULL, "|");
-            strcpy(g.raza, pch);
+            strcpy(g->raza, pch);
             pch = strtok(NULL, "|");
-            strcpy(g.sexo,pch);
+            strcpy(g->sexo,pch);
             pch = strtok(NULL, "|");
-            strcpy(g.estado, pch);
+            strcpy(g->estado, pch);
             archivo.close();
             return g;
         }
@@ -371,46 +406,48 @@ gato devolver_gato(char nombre[20]){
     return NULL;
 }
 
-void obtener_Rescatados(const char[] path){
+int obtener_Rescatados(const char *path){
     ifstream archivo1;
     ofstream archivo2;
     string texto;
-    char gatito[60];
+    char gatito[100];
     char *pch;
-
     archivo1.open("gatos.txt",ios::in);
-    if(archivo1.fail()){
-        cout << "no se pudo abrir el archivo gatos.txt" << endl;
-        exit(1);
-    }
-
-    archivo2.open(path,ios::out);
+    if(archivo1.fail())
+        return -1;
+    string tempString(path);
+    archivo2.open(tempString,ios::out);
     if(archivo2.fail()){
-        cout << "no se pudo abrir el archivo rescatados.txt" << endl;
-        exit(1);
+        archivo1.close();
+        return -2;
     }
-
     while(!archivo1.eof()){
-        getline(archivo,texto);
+        getline(archivo1,texto);
         strcpy(gatito,texto.c_str());
         pch = strtok(gatito, "|");
-        if(strcpy(pch,"ALTA") == 0) {     //consideramos a los gatos en situación de ALTA como rescatados.
-            archivo2 << texto << endl;
+        if(strcmp(pch,"ALTA") == 0) {     //consideramos a los gatos en situación de ALTA como rescatados.
+            archivo2 << texto;
         }
     }
     archivo1.close();
     archivo2.close();
+    return 0;
 }
 
+acciones* abrir_mem_comp(){
+    int idMemoria = shm_open(NombreMemoria, O_CREAT | O_RDWR, 0600); // obtenemos un numero que nos identifica esta memoria.
+    // definir nuestra variable que es la variable que estara mapeada a memoria compartida.
+    // la memoria compartida ya esta creada y tenermos un identificador, pero no podemos accederla..
+    //me va a determinar/setear el tamaño de la memoria, asociara los tamaños y nos limpiara un poco lo que hay allí dentro.
+    //ftruncate(idMemoria,sizeof(acciones));
 
-void cerrarEliminarSem(){
+    //me va a mapear, o a relacionar un segmento de memoria a una variable. agarra un espacio de memoria y mapearlo/darnos la direccion de memoria de ese espacio de memoria.
+    acciones *memoria = (acciones *)mmap(NULL, sizeof(acciones), PROT_READ | PROT_WRITE, MAP_SHARED, idMemoria,0);
 
+    close(idMemoria);
+    return memoria;
 }
 
-void liberarSemaforos(){
-
-}
-
-void inicializarSemaforos(){
-
+void cerrar_mem_comp(acciones *a){
+    munmap(a, sizeof(acciones));
 }

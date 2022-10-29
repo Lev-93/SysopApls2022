@@ -20,61 +20,33 @@
 #include <time.h>
 #include <syslog.h>
  
-int init_daemon(void) 
-{ 
-	int pid; 
-	int i; 
-    printf("paso por aca daemon");
-	// Ignora la señal de E / S del terminal, señal de PARADA
-	signal(SIGTTOU,SIG_IGN);
-	signal(SIGTTIN,SIG_IGN);
-	signal(SIGTSTP,SIG_IGN);
-	signal(SIGHUP,SIG_IGN);
-	
-	pid = fork();
-	if(pid > 0) {
-		exit(0); // Finaliza el proceso padre, haciendo que el proceso hijo sea un proceso en segundo plano
-	}
-	else if(pid < 0) { 
-		return -1;
-	}
- 
-	// Cree un nuevo grupo de procesos, en este nuevo grupo de procesos, el proceso secundario se convierte en el primer proceso de este grupo de procesos, de modo que el proceso se separa de todos los terminales
-	setsid();
- 
-	// Cree un nuevo proceso hijo nuevamente, salga del proceso padre, asegúrese de que el proceso no sea el líder del proceso y haga que el proceso no pueda abrir una nueva terminal
-	pid=fork();
-	if( pid > 0) {
-		exit(0);
-	}
-	else if( pid< 0) {
-		return -1;
-	}
- 
-	// Cierre todos los descriptores de archivos heredados del proceso padre que ya no son necesarios
-	for(i=0;i< NOFILE;close(i++));
- 
-	// Cambia el directorio de trabajo para que el proceso no contacte con ningún sistema de archivos
-	chdir("/");
- 
-	// Establece la palabra de protección del archivo en 0 en el momento
-	umask(0);
- 
-	// Ignora la señal SIGCHLD
-	signal(SIGCHLD,SIG_IGN); 
-	
-	return 0;
-}
- 
+typedef struct {
+    char situacion[4]; // ALTA (ingreso/rescatado) BAJA (adopcion/egreso)
+    char nombre[20];
+    char raza[20];
+    char sexo[1];    // M o H
+    char estado[2]; // CA (castrado) o SC (sin castrar) 
+}gato;
+ using namespace std;
+//necesitamos un identificador para la memoria compartida para que los diferentes procesos que vayan a utilizarla tengan una manera de referenciarla
+#define NombreMemoria "miMmemoria"
+
 int main() 
 { 
-	time_t now;
-	init_daemon();
-    printf("paso por aca main");
-	syslog(LOG_USER|LOG_INFO,"TestDaemonProcess! \n");
-	while(1) { 
-		sleep(8);
-		time(&now); 
-		syslog(LOG_USER|LOG_INFO,"SystemTime: \t%s\t\t\n",ctime(&now));
-	} 
+//crear la memoria compartida
+    int idMemoria = shm_open(NombreMemoria, O_CREAT | O_RDWR, 0600); // obtenemos un numero que nos identifica esta memoria.
+    //me va a determinar/setear el tamaño de la memoria, asociara los tamaños y nos limpiara un poco lo que hay allí dentro.
+    ftruncate(idMemoria,sizeof(gato));
+
+    // definir nuestra variable que es la variable que estara mapeada a memoria compartida.
+    // la memoria compartida ya esta creada y tenermos un identificador, pero no podemos accederla..
+
+    //me va a mapear, o a relacionar un segmento de memoria a una variable. agarra un espacio de memoria y mapearlo/darnos la direccion de memoria de ese espacio de memoria.
+    gato *memoria = (gato*)mmap(NULL, sizeof(gato), PROT_READ | PROT_WRITE, MAP_SHARED, idMemoria,0);
+
+    close(idMemoria);
+
+    // con esto ya no estara relacionado más a la memoria compartida. Quizas cambiarlo ya que tendremos que cerrarla cuando se envie la señal
+    munmap(memoria, sizeof(gato));
+
 }
