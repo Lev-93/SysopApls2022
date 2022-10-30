@@ -44,10 +44,10 @@ typedef struct {
 sem_t* semaforos[5];
 /*
     0 - Servidor (solo puede haber 1) se inicia en 1 y rapidamente se ocupa por el primer demonio. se liberara cuando el servidor demonio sea detenido
-    1 - MC, (solo puede acceder un proceso por vez) se inicia en 1
-    2 - Cliente, el cual se liberara justo antes de comenzar el bucle infinito, se inicia en 0.
-    3 - TS, iniciara en 0 y solo se liberara cuando el cliente termine su actividad
-    4 - TC, iniciara en 0, y se liberara antes de comenzar el bucle y al finalizar un ciclo de dicho bucle. 
+    1 - Cliente, el cual se liberara justo antes de comenzar el bucle infinito, se inicia en 0.
+    2 - MC, (solo puede acceder un proceso por vez) se inicia en 1
+    3 - TC, iniciara en 0, y se liberara antes de comenzar el bucle y al finalizar un ciclo de dicho bucle. 
+    4 - TS, iniciara en 0 y solo se liberara cuando el cliente termine su actividad
 */
 
 using namespace std;
@@ -57,15 +57,14 @@ using namespace std;
 acciones* accion;
 
 /***********************************Semaforos**********************************/
-void cerrarEliminarSem();
-void liberarSemaforos();
-void inicializarSemaforos();
+void eliminar_Sem();
 /***********************************Semaforos**********************************/
 
 /***********************************Recursos**********************************/
 void liberar_Recursos(int);
 /***********************************Recursos**********************************/
 
+void inicializarSemaforos();
 
 /***********************************Archivos**********************************/
 bool Ayuda(const char *);
@@ -139,12 +138,15 @@ int main(int argc, char *argv[]){
 
 	// Establece la palabra de protección del archivo en 0 en el momento
 	umask(0);
+    // el O_CREAT en este caso dice, si no esta crearlo. Si el semaforo no existe, crealo.
+    inicializarSemaforos();
 
     //P(Servidor)
-
+    sem_wait(semaforos[0]);
     /*************************************************************************************************/
     
     //P(MC)
+    sem_wait(semaforos[2]);
     //crear la memoria compartida
     int idMemoria = shm_open(NombreMemoria, O_CREAT | O_RDWR, 0600); // obtenemos un numero que nos identifica esta memoria.
     //me va a determinar/setear el tamaño de la memoria, asociara los tamaños y nos limpiara un poco lo que hay allí dentro.
@@ -160,17 +162,22 @@ int main(int argc, char *argv[]){
 
     // con esto ya no estara relacionado más a la memoria compartida. Quizas cambiarlo ya que tendremos que cerrarla cuando se envie la señal
     munmap(memoria, sizeof(acciones));
+    sem_post(semaforos[2]);
     //V(MC)
-
+    
     //Manejo de señales, cuando se reciban algunas de las dos señales se ejecutara su correspondiente función.
     signal(SIGUSR1, liberar_Recursos);
     //si esta la señal Ctrl+c la ignora.
     signal(SIGINT,SIG_IGN);
 
     //V(Cliente) // A partir de aqui ya podran operar los clientes.
+    sem_post(semaforos[1]);
     //V(TC)
+    sem_post(semaforos[3]);
     while (1) {
+        sem_wait(semaforos[4]);
         // P (TS) Turno del servidor, inicia el 0 y solo tendra un 1 de valor una ves que termine de ejecutar algun proceso cliente.
+        sem_wait(semaforos[2]);
         // P(MC) Bloqueamos la memoria compartida.
         acciones *memoria = abrir_mem_comp();
         if(memoria->alta == 1){
@@ -223,27 +230,45 @@ int main(int argc, char *argv[]){
             memoria->consultar = 0;
         }
         cerrar_mem_comp(memoria);
+        sem_post(semaforos[2]);
         //V(MC)
+        sem_post(semaforos[3]);
         // V(TC)
         sleep(5); /* wait 5 seconds */
     }
    exit(EXIT_SUCCESS);
 }
 
-void cerrarEliminarSem(){
-
-}
-
-void liberarSemaforos(){
-
-}
-
-void inicializarSemaforos(){
-
+void eliminar_Sem(){
+    sem_close(semaforos[0]);
+    sem_close(semaforos[1]);
+    sem_close(semaforos[2]);
+    sem_close(semaforos[3]);
+    sem_close(semaforos[4]);
+    sem_unlink("servidor");
+    sem_unlink("cliente");
+    sem_unlink("memComp");
+    sem_unlink("t_Cliente");
+    sem_unlink("t_Servidor");
 }
 
 void liberar_Recursos(int signum){
+    eliminar_Sem();
+    exit(EXIT_SUCCESS);
+}
 
+void inicializarSemaforos(){
+    semaforos[0] = sem_open("servidor",O_CREAT,0600,1);
+    
+    // Si dicho semaforo vale 0 en ese momento significa que ya hay otra instancia de semaforo ejecutando por lo que cerramos el proceso.
+    int valorSemServi = 85;
+    sem_getvalue(semaforos[0],&valorSemServi);
+    if(valorSemServi == 0)
+        exit(EXIT_FAILURE);
+    semaforos[1] = sem_open("cliente",O_CREAT,0600,0);
+    semaforos[2] = sem_open("memComp",O_CREAT,0600,1);
+    semaforos[3] = sem_open("t_Cliente",O_CREAT,0600,0);
+    semaforos[4] = sem_open("t_Servidor",O_CREAT,0600,0);
 }
 
 bool Ayuda(const char *cad)
