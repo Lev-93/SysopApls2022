@@ -53,8 +53,8 @@ El usuario com más llamadas por debajo de la media en la semana es: aerodriguez
 # =========================== Encabezado =======================
 
 # Nombre del programa: Ejercicio1.cpp
-# Número de ejercicio: 1
-# Trabajo Práctico: 3
+# Número de ejercicio: 2
+# Trabajo Práctico: 2
 # Entrega: Primera entrega
 
 # ==============================================================
