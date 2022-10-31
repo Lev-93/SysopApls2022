@@ -289,7 +289,14 @@ bool Ayuda(const char *cad)
 {
     if (!strcmp(cad, "-h") || !strcmp(cad, "--help") )
     {
-        cout << endl;
+        cout << "Esta script permite solicitar al proceso servidor diferentes acciones."<< endl;
+        cout << "Alta, si se quiere registrar un gato"<< endl;
+        cout << "La manera de ejecutar este modo es ./Cliente ALTA [nombre del gato] [raza] [sexo (M/H)] [castrado(CA)/sin castrar(SC)]"<< endl;
+        cout << "Baja, si un gato fue adoptado hay que darle la baja" << endl;
+        cout << "La manera de ejecutar este modo es ./Cliente BAJA [nombre del gato]" << endl;
+        cout << "Consulta, si se quiere saber sobre un gato en específico o todos aquellos gatos que han sido rescatados" << endl;
+        cout << "La manera de saber sobre un gato en específico es: ./Cliente CONSULTA [nombre del gato]" << endl;
+        cout << "La manera de saber sobre todos los gatos que han sido rescatados es: ./Cliente CONSULTA" << endl;
         return true;
     }
     return false;

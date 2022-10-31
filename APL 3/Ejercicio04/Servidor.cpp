@@ -270,7 +270,13 @@ bool Ayuda(const char *cad)
 {
     if (!strcmp(cad, "-h") || !strcmp(cad, "--help") )
     {
-        cout << endl;
+        cout << "Esta script quedara ejecutando en segundo plano como demonio." << endl;
+        cout << "La cual dara servicio a otra script llamada Cliente." << endl;
+        cout << "Dependiendo de lo que desee el cliente, este proceso realizara las correspondientes acciones" << endl;
+        cout << "Alta, registra de poder, al gato en cuestion en el archivo." << endl;
+        cout << "Baja, si dicho gato fue adoptado, modifica el estado de dicho gato en el archivo" << endl;
+        cout << "Consulta, traera algún gato particular o listara todos los gatos rescatados." << endl;
+        cout << "solo se ejecuta de la siguiente manera ./Servidor" << endl;
         return true;
     }
     return false;
