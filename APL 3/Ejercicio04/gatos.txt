@@ -1,0 +1,3 @@
+ALTA|Snowball|Siames|H|SC
+ALTA|Peruana|Siames|H|SC
+ALTA|Grandote|Siames|M|SC

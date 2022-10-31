@@ -199,7 +199,7 @@ int main(int argc, char *argv[]){
             sem_wait(semaforos[1]);
             // P(MC)
             acciones *a = abrir_mem_comp();
-            strcpy(a->consulta,argv[2]);
+            strcpy(a->g.nombre,argv[2]);
             a->consultar = 1;
             cerrar_mem_comp(a);
             sem_post(semaforos[1]);
@@ -223,7 +223,11 @@ int main(int argc, char *argv[]){
                     string tmp_raza(a->g.raza);
                     string tmp_sexo(a->g.sexo);
                     string tmp_estado(a->g.estado);
-                    cout << tmp_situacion + "|" + tmp_nombre + "|" + tmp_raza + "|" + tmp_sexo + "|" + tmp_estado;
+                    cout << "Situacion: " + tmp_situacion << endl;
+                    cout << "Nombre: " + tmp_nombre << endl;
+                    cout << "Raza: " + tmp_raza << endl;
+                    cout << "Sexo: " + tmp_sexo << endl;
+                    cout << "Estado: " + tmp_estado << endl;
                     strcpy(a->g.situacion,"");
                     strcpy(a->g.nombre,"");
                     strcpy(a->g.raza,"");
@@ -319,9 +323,7 @@ acciones* abrir_mem_comp(){
 }
 
 void cerrar_mem_comp(acciones *a){
-    cout << "paso pora aca 284 cerrar memoria compartida" << endl;
     munmap(a, sizeof(acciones));
-    cout << "paso pora aca 286 cerrar memoria compartida" << endl;
 }
 
 int leer_rescatados(const char path[20]){

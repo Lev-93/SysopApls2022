@@ -209,17 +209,17 @@ int main(int argc, char *argv[]){
             memoria->baja = 0;
         }
         if(memoria->consultar == 1){
-            if(strcmp(memoria->consulta,"") != 0){ //significa que se ingreso el nombre
-                int pos = consultarArchivo(memoria->consulta);
+            if(strcmp(memoria->g.nombre,"") != 0){ //significa que se ingreso el nombre
+                int pos = consultarArchivo(memoria->g.nombre);
                 if(pos == -1 || pos == -2)
                     strcpy(memoria->consulta,"El gato no se encuentra registrado");
                 else{ //si el gato si fue encontrado...
-                    gato *aux = devolver_gato(memoria->consulta);
+                    gato *aux = devolver_gato(memoria->g.nombre);
                     strcpy(memoria->g.situacion,aux->situacion);
-                    strcpy(memoria->g.nombre,aux->nombre);
                     strcpy(memoria->g.raza,aux->raza);
                     strcpy(memoria->g.sexo,aux->sexo);
                     strcpy(memoria->g.estado,aux->estado);
+                    strcpy(memoria->consulta,"");
                 }
             }
             else{ //mostrar toda la tabla de TODOS LOS GATOS RESCATADOS, es decir, los que poseen ALTA
@@ -396,7 +396,7 @@ int modificar_Archivo(const char nombre[20]){
             }
         }
         else{
-            auxiliar << texto;
+            auxiliar << texto << endl;
         }
         pch = strtok(gatito, "|");
         //aqui obtenemos el nombre del gato
