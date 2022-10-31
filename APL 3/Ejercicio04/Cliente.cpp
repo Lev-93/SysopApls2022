@@ -243,7 +243,7 @@ int main(int argc, char *argv[]){
                 sem_wait(semaforos[1]);
                 // P(MC)
                 acciones *a = abrir_mem_comp();
-                strcpy(a->consulta,"rescatados.txt");
+                strcpy(a->rescatados,"rescatados.txt");
                 a->consultar = 1;
                 cerrar_mem_comp(a);
                 sem_post(semaforos[1]);

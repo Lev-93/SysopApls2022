@@ -225,7 +225,7 @@ int main(int argc, char *argv[]){
             else{ //mostrar toda la tabla de TODOS LOS GATOS RESCATADOS, es decir, los que poseen ALTA
                 int res = obtener_Rescatados(memoria->rescatados);
                 if(res == -2 || res == -1)
-                    strcpy(memoria->consulta,"No se encuentran gatos registrados");
+                    strcpy(memoria->consulta,"No se encuentran gatos rescatados (situacion = ALTA)");
             }
             memoria->consultar = 0;
         }
@@ -474,7 +474,7 @@ int obtener_Rescatados(const char *path){
             break;
         pch = strtok(gatito, "|");
         if(strcmp(pch,"ALTA") == 0) {     //consideramos a los gatos en situación de ALTA como rescatados.
-            archivo2 << texto;
+            archivo2 << texto << endl;
         }
     }
     archivo1.close();
