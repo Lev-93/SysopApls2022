@@ -52,7 +52,7 @@ bool Ayuda(const char *);
 acciones* abrir_mem_comp();
 void cerrar_mem_comp(acciones*);
 int leer_rescatados(const char[]);
-bool validar_nombre(const char[]);
+bool validar_parametro(const char[]);
 int main(int argc, char *argv[]){
     if(argc < 1){
         cout << "Error, ingrese algún parametro" << endl;
@@ -75,7 +75,7 @@ int main(int argc, char *argv[]){
     sem_wait(semaforos[2]);
     if(strcmp(argv[1],"ALTA") == 0){
         if(argc == 6){
-            if(validar_nombre(argv[2]) == false){
+            if(validar_parametro(argv[2]) == false || validar_parametro(argv[3]) == false){
                 sem_post(semaforos[2]);
                 //V(TC)
                 sem_post(semaforos[0]);
@@ -142,7 +142,7 @@ int main(int argc, char *argv[]){
     }
     if(strcmp(argv[1],"BAJA") == 0){
         if(argc == 3){
-            if(validar_nombre(argv[2]) == false){
+            if(validar_parametro(argv[2]) == false){
                 sem_post(semaforos[2]);
                 //V(TC)
                 sem_post(semaforos[0]);
@@ -188,7 +188,7 @@ int main(int argc, char *argv[]){
     if(strcmp(argv[1],"CONSULTA") == 0){
         if(argc == 3){
             //En caso de mandar un nombre en concreto...
-            if(validar_nombre(argv[2]) == false){
+            if(validar_parametro(argv[2]) == false){
                 sem_post(semaforos[2]);
                 //V(TC)
                 sem_post(semaforos[0]);
@@ -344,7 +344,7 @@ int leer_rescatados(const char path[20]){
     return 0;
 }
 
-bool validar_nombre(const char nombre[]){
+bool validar_parametro(const char nombre[]){
     string tmp_nombre(nombre);
     if(tmp_nombre.length() > 20){
         cout << "Error, el nombre del gato no debe sobrepasar los 20 caracteres" << endl;
