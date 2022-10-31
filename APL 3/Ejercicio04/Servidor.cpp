@@ -57,14 +57,12 @@ acciones* accion;
 
 /***********************************Semaforos**********************************/
 void eliminar_Sem();
-void eliminar_aux();
+void inicializarSemaforos();
 /***********************************Semaforos**********************************/
 
 /***********************************Recursos**********************************/
 void liberar_Recursos(int);
 /***********************************Recursos**********************************/
-
-void inicializarSemaforos();
 
 /***********************************Archivos**********************************/
 bool Ayuda(const char *);
@@ -84,10 +82,6 @@ int main(int argc, char *argv[]){
     if(argc > 1){
         if((strcmp(argv[1],"-h") == 0 || strcmp(argv[1],"--help") == 0) && argc == 2){
             Ayuda(argv[1]);
-            exit(EXIT_SUCCESS);
-        }
-        if(strcmp(argv[1],"liberar") == 0){
-            eliminar_aux();
             exit(EXIT_SUCCESS);
         }
     }
@@ -134,10 +128,6 @@ int main(int argc, char *argv[]){
 	// Establece la palabra de protección del archivo en 0 en el momento
 	umask(0);
 
-    ofstream archivo_Auxiliar;
-    archivo_Auxiliar.open("salida.txt",ios::out);
-    archivo_Auxiliar << "Demonio ejecutando" << endl;
-    archivo_Auxiliar.close();
     // el O_CREAT en este caso dice, si no esta crearlo. Si el semaforo no existe, crealo.
     inicializarSemaforos();
 
@@ -235,9 +225,6 @@ int main(int argc, char *argv[]){
         sem_post(semaforos[3]);
         // V(TC)
         cont++;
-        archivo_Auxiliar.open("salida.txt",ios::app);
-        archivo_Auxiliar << cont << endl;
-        archivo_Auxiliar.close();
         sleep(5); /* Espera 5 segundos */
         if(cont == 6)
             kill(getpid(),SIGUSR1);
@@ -258,21 +245,6 @@ void eliminar_Sem(){
     sem_unlink("t_Servidor");
 }
 
-void eliminar_aux(){
-    sem_unlink("servidor");
-    sem_unlink("cliente");
-    sem_unlink("memComp");
-    sem_unlink("t_Cliente");
-    sem_unlink("t_Servidor");
-}
-
-void liberar_Recursos(int signum){
-    eliminar_Sem();
-    remove("gatos.txt");
-    remove("salida.txt");
-    exit(EXIT_SUCCESS);
-}
-
 void inicializarSemaforos(){
     semaforos[0] = sem_open("servidor",O_CREAT,0600,1);
     
@@ -285,6 +257,13 @@ void inicializarSemaforos(){
     semaforos[2] = sem_open("memComp",O_CREAT,0600,1);
     semaforos[3] = sem_open("t_Cliente",O_CREAT,0600,0);
     semaforos[4] = sem_open("t_Servidor",O_CREAT,0600,0);
+}
+
+void liberar_Recursos(int signum){
+    eliminar_Sem();
+    remove("gatos.txt");
+    remove("salida.txt");
+    exit(EXIT_SUCCESS);
 }
 
 bool Ayuda(const char *cad)
