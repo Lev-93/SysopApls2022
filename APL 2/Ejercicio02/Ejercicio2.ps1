@@ -1,24 +1,6 @@
-# =========================== Encabezado =======================
-
-# Nombre del script: Ejercicio2.sh
-# Número de ejercicio: 2
-# Trabajo Práctico: 2
-# Entrega: Primera entrega
-
-# ==============================================================
-
-# ------------------------ Integrantes ------------------------
-# 
-#	Nombre				|	Apellido			|	DNI
-#	Matías				|	Beltramone			|	40.306.191
-#	Eduardo				|	Couzo Wetzel			|	43.584.741
-#	Brian				|	Menchaca			|	40.476.567
-#	Ivana				|	Ruiz				|	33.329.371
-#	Lucas				|	Villegas			|	37.792.844
-# -------------------------------------------------------------
 <#
        .Synopsis
-  	 "El script tiene por objetivo generar informes de las llamadas provenientes de un log"
+  	 El script tiene por objetivo generar informes de las llamadas provenientes de archivos de log:
 	   		
       .Description
 Informes:
@@ -37,7 +19,7 @@ Informes:
 2022-08-09 14:26:41-vbo
 2022-08-09 14:32:00-aerodriguez	
 .Example
-./Ejercicio2.ps -logs "pruebaEjercicio2-0"
+./Ejercicio2.ps -logs "./Prueba"
 	
 ------------Promedio de las llamadas de cada dia--------------
  
@@ -67,20 +49,36 @@ Dia: 2022-08-09 Cantidad llamadas: 1 Promedio: 270 segundos
 Dia: 2022-08-09 Cantidad de llamadas que no superan la media (237.5 seg) es: 2
  
 El usuario com más llamadas por debajo de la media en la semana es: aerodriguez con 1 llamada/s
+#>
+# =========================== Encabezado =======================
 
+# Nombre del programa: Ejercicio1.cpp
+# Número de ejercicio: 1
+# Trabajo Práctico: 3
+# Entrega: Primera entrega
 
-    
- #>
+# ==============================================================
+
+# ------------------------ Integrantes ------------------------
+# 
+#	Nombre				|	Apellido			|	DNI
+#	Matías				|	Beltramone			|	40.306.191
+#	Eduardo				|	Couzo Wetzel			|	43.584.741
+#	Brian				|	Menchaca			|	40.476.567
+#	Ivana				|	Ruiz				|	33.329.371
+#	Lucas				|	Villegas			|	37.792.844
+# -------------------------------------------------------------
 Param(
-	[Parameter(Mandatory=$True,Position=1)][string]$logs
+	[Parameter(Mandatory=$false,Position=1)][string]$logs
 )
-$Global:llamadas=New-Object System.Collections.ArrayList
-$Global:llamadas2=New-Object System.Collections.ArrayList
-$Global:llamadasSinFin=New-Object System.Collections.ArrayList
-$Global:estado=New-Object System.Collections.ArrayList
-$Global:estado2=New-Object System.Collections.ArrayList
-$Global:cantidadLlamadas=New-Object System.Collections.ArrayList
-$Global:media
+$llamadas=New-Object System.Collections.ArrayList
+$llamadas2=New-Object System.Collections.ArrayList
+$llamadasSinFin=New-Object System.Collections.ArrayList
+$estado=New-Object System.Collections.ArrayList
+$estado2=New-Object System.Collections.ArrayList
+$cantidadLlamadas=New-Object System.Collections.ArrayList
+$archivos=New-Object System.Collections.ArrayList
+$media
 $todoOk=$true
 function ayuda()
 {
@@ -584,14 +582,27 @@ function informarErrores()
 		Write-Host $llamadasSinFin[$i]
 	}
 }
-if((Test-Path -Path $logs -PathType Leaf) -eq $false)
+if((Test-Path -Path $logs) -eq $false)
 {	
-	Write-Host "No existe el archivo $logs"
+	Write-Host "No existe el Path $logs"
 	$todoOK=$false
 }
+$i=0
+Get-ChildItem -Path "$logs" -File |
+Foreach-Object{
+	$nada=$archivos.add("$_")
+	$i++
+}
+
+for($i=0;$i -lt $archivos.count;$i++)
+{
+	Write-Host ""
+	Write-Host ""
+	Write-Host "Archivo N° $i"
+	Write-Host "Ubicacion:" $archivos[$i]
 if($todoOK -eq $true)
 {
-	cargarVector "$logs"
+	cargarVector $archivos[$i]
 }
 
 if($todoOK -eq $true -and$llamadas2.count -eq 0)
@@ -606,7 +617,6 @@ if($todoOK -eq $true)
 	if($llamadas.count -ne 0)
 	{
 		$llamadas.sort()
-		Write-Host " \n\n"
 		cargarVectorParalelo
 		promedioTiempoDia
 		cargarVectorParalelo
@@ -628,4 +638,12 @@ if($todoOK -eq $true)
 	{
 		informarErrores
 	}
+}
+	$llamadas.clear()
+	$llamadas2.clear()
+	$llamadasSinFin.clear()
+	$estado.clear()
+	$estado2.clear()
+	$cantidadLlamadas.clear()
+	$todoOK=$true
 }
