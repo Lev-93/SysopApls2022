@@ -1,4 +1,0 @@
-ALTA|SnowBall|siamés|M|CA
-BAJA|Lola Mora|Marrona|M|CA
-ALTA|Peluzo|Gris|H|SC
-BAJA|Pelusita|Blanca|M|SC

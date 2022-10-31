@@ -52,29 +52,63 @@ bool Ayuda(const char *);
 acciones* abrir_mem_comp();
 void cerrar_mem_comp(acciones*);
 int leer_rescatados(const char[]);
-
+bool validar_nombre(const char[]);
 int main(int argc, char *argv[]){
+    if(argc < 1){
+        cout << "Error, ingrese algún parametro" << endl;
+        exit(EXIT_FAILURE);
+    }
+
     if((strcmp(argv[1],"-h") == 0 || strcmp(argv[1],"--help") == 0) && argc == 2){
         Ayuda(argv[1]);
         exit(EXIT_SUCCESS);
     }
 
     inicializarSemaforos();
-
+    if(strcmp(argv[1],"ALTA") != 0 && strcmp(argv[1],"BAJA") != 0 && strcmp(argv[1],"CONSULTA") != 0){
+        cout << "Error, parametro inválido" << endl;
+        exit(EXIT_FAILURE);
+    }
     //  P(Cliente)
     sem_wait(semaforos[0]);
     //  P(TC)
     sem_wait(semaforos[2]);
     if(strcmp(argv[1],"ALTA") == 0){
         if(argc == 6){
+            if(validar_nombre(argv[2]) == false){
+                sem_post(semaforos[2]);
+                //V(TC)
+                sem_post(semaforos[0]);
+                //V(Cliente)
+                cerrar_Sem();
+                exit(EXIT_FAILURE);
+            }
+            if(strcmp(argv[4],"M") != 0 && strcmp(argv[4],"H") != 0){
+                cout << "Error, el sexo debe ser Macho (M) o Hembra (H)" << endl;
+                sem_post(semaforos[2]);
+                //V(TC)
+                sem_post(semaforos[0]);
+                //V(Cliente)
+                cerrar_Sem();
+                exit(EXIT_FAILURE);
+             }
+            if(strcmp(argv[5],"CA") != 0 && strcmp(argv[5],"SC") != 0){
+                cout << "Error, el estado debe ser Castrado (CA) o Sin castrar (SC)" << endl;
+                sem_post(semaforos[2]);
+                //V(TC)
+                sem_post(semaforos[0]);
+                //V(Cliente)
+                cerrar_Sem();
+                exit(EXIT_FAILURE);
+            }
             // P(MC)
             sem_wait(semaforos[1]);
             acciones *a = abrir_mem_comp();
-            strcpy(a->g.situacion,argv[2]);
-            strcpy(a->g.nombre,argv[3]);
-            strcpy(a->g.raza,argv[4]);
-            strcpy(a->g.sexo,argv[5]);
-            strcpy(a->g.estado,argv[6]);
+            strcpy(a->g.situacion,argv[1]);
+            strcpy(a->g.nombre,argv[2]);
+            strcpy(a->g.raza,argv[3]);
+            strcpy(a->g.sexo,argv[4]);
+            strcpy(a->g.estado,argv[5]);
             a->alta = 1;
             cerrar_mem_comp(a);
 
@@ -108,6 +142,14 @@ int main(int argc, char *argv[]){
     }
     if(strcmp(argv[1],"BAJA") == 0){
         if(argc == 3){
+            if(validar_nombre(argv[2]) == false){
+                sem_post(semaforos[2]);
+                //V(TC)
+                sem_post(semaforos[0]);
+                //V(Cliente)
+                cerrar_Sem();
+                exit(EXIT_FAILURE);
+            }
             sem_wait(semaforos[1]);
             // P(MC)
             acciones *a = abrir_mem_comp();
@@ -145,11 +187,19 @@ int main(int argc, char *argv[]){
 
     if(strcmp(argv[1],"CONSULTA") == 0){
         if(argc == 3){
-            //En caso de no mandar un nombre en concreto...
+            //En caso de mandar un nombre en concreto...
+            if(validar_nombre(argv[2]) == false){
+                sem_post(semaforos[2]);
+                //V(TC)
+                sem_post(semaforos[0]);
+                //V(Cliente)
+                cerrar_Sem();
+                exit(EXIT_FAILURE);
+            }
             sem_wait(semaforos[1]);
             // P(MC)
             acciones *a = abrir_mem_comp();
-            strcpy(a->g.nombre,argv[2]);
+            strcpy(a->consulta,argv[2]);
             a->consultar = 1;
             cerrar_mem_comp(a);
             sem_post(semaforos[1]);
@@ -269,7 +319,9 @@ acciones* abrir_mem_comp(){
 }
 
 void cerrar_mem_comp(acciones *a){
+    cout << "paso pora aca 284 cerrar memoria compartida" << endl;
     munmap(a, sizeof(acciones));
+    cout << "paso pora aca 286 cerrar memoria compartida" << endl;
 }
 
 int leer_rescatados(const char path[20]){
@@ -288,4 +340,13 @@ int leer_rescatados(const char path[20]){
     archivo.close();
     remove(path);
     return 0;
+}
+
+bool validar_nombre(const char nombre[]){
+    string tmp_nombre(nombre);
+    if(tmp_nombre.length() > 20){
+        cout << "Error, el nombre del gato no debe sobrepasar los 20 caracteres" << endl;
+        return false;
+    }
+    return true;
 }

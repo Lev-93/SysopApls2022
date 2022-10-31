@@ -20,7 +20,6 @@
 #include <time.h>
 #include <syslog.h>
 
-
 typedef struct {
     char situacion[5]; // ALTA (ingreso/rescatado) BAJA (adopcion/egreso)
     char nombre[21];
@@ -58,6 +57,7 @@ acciones* accion;
 
 /***********************************Semaforos**********************************/
 void eliminar_Sem();
+void eliminar_aux();
 /***********************************Semaforos**********************************/
 
 /***********************************Recursos**********************************/
@@ -81,16 +81,19 @@ void cerrar_mem_comp(acciones*);
 /***********************************Memoria compartida**********************************/
 
 int main(int argc, char *argv[]){
-
-    if((strcmp(argv[1],"-h") == 0 || strcmp(argv[1],"--help") == 0) && argc == 2){
-        Ayuda(argv[1]);
-        exit(EXIT_SUCCESS);
+    if(argc > 1){
+        if((strcmp(argv[1],"-h") == 0 || strcmp(argv[1],"--help") == 0) && argc == 2){
+            Ayuda(argv[1]);
+            exit(EXIT_SUCCESS);
+        }
+        if(strcmp(argv[1],"liberar") == 0){
+            eliminar_aux();
+            exit(EXIT_SUCCESS);
+        }
     }
 
     pid_t pid, sid;
     int i;
-
-
 
     // Ignora la señal de E / S del terminal, señal de PARADA
 	signal(SIGTTOU,SIG_IGN);
@@ -99,15 +102,10 @@ int main(int argc, char *argv[]){
 	signal(SIGHUP,SIG_IGN);
 
     pid = fork();
-    if (pid < 0) {
+    if (pid < 0) 
         exit(EXIT_FAILURE); // Finaliza el proceso padre, haciendo que el proceso hijo sea un proceso en segundo plano
-    }
-    if (pid > 0) {
+    if (pid > 0)
         exit(EXIT_SUCCESS);
-    }
-
-    //umask(0);
-    
     // Cree un nuevo grupo de procesos, en este nuevo grupo de procesos, el proceso secundario se convierte en el primer proceso de este grupo de procesos, de modo que el proceso se separa de todos los terminales    
 
     sid = setsid();
@@ -124,10 +122,7 @@ int main(int argc, char *argv[]){
 	else if( pid< 0) {
 		exit(EXIT_FAILURE);
 	}
-
-    /* close(STDIN_FILENO); close(STDOUT_FILENO); close(STDERR_FILENO); */
-
-     
+  
 	// Cierre todos los descriptores de archivos heredados del proceso padre que ya no son necesarios
 	for(i=0;i< NOFILE;close(i++));
 
@@ -138,13 +133,17 @@ int main(int argc, char *argv[]){
 
 	// Establece la palabra de protección del archivo en 0 en el momento
 	umask(0);
+
+    ofstream archivo_Auxiliar;
+    archivo_Auxiliar.open("salida.txt",ios::out);
+    archivo_Auxiliar << "Demonio ejecutando" << endl;
+    archivo_Auxiliar.close();
     // el O_CREAT en este caso dice, si no esta crearlo. Si el semaforo no existe, crealo.
     inicializarSemaforos();
 
     //P(Servidor)
     sem_wait(semaforos[0]);
     /*************************************************************************************************/
-    
     //P(MC)
     sem_wait(semaforos[2]);
     //crear la memoria compartida
@@ -174,6 +173,7 @@ int main(int argc, char *argv[]){
     sem_post(semaforos[1]);
     //V(TC)
     sem_post(semaforos[3]);
+    int cont = 0;
     while (1) {
         sem_wait(semaforos[4]);
         // P (TS) Turno del servidor, inicia el 0 y solo tendra un 1 de valor una ves que termine de ejecutar algun proceso cliente.
@@ -234,7 +234,13 @@ int main(int argc, char *argv[]){
         //V(MC)
         sem_post(semaforos[3]);
         // V(TC)
-        sleep(5); /* wait 5 seconds */
+        cont++;
+        archivo_Auxiliar.open("salida.txt",ios::app);
+        archivo_Auxiliar << cont << endl;
+        archivo_Auxiliar.close();
+        sleep(5); /* Espera 5 segundos */
+        if(cont == 6)
+            kill(getpid(),SIGUSR1);
     }
    exit(EXIT_SUCCESS);
 }
@@ -252,8 +258,18 @@ void eliminar_Sem(){
     sem_unlink("t_Servidor");
 }
 
+void eliminar_aux(){
+    sem_unlink("servidor");
+    sem_unlink("cliente");
+    sem_unlink("memComp");
+    sem_unlink("t_Cliente");
+    sem_unlink("t_Servidor");
+}
+
 void liberar_Recursos(int signum){
     eliminar_Sem();
+    remove("gatos.txt");
+    remove("salida.txt");
     exit(EXIT_SUCCESS);
 }
 
@@ -297,6 +313,8 @@ int consultarArchivo(const char nombre[20]){
     while(!archivo.eof()){
         getline(archivo,texto);
         strcpy(gatito,texto.c_str());
+        if(strcmp(gatito,"") == 0)
+            break;
         //aqui obtenemos la situacion del gato
         pch = strtok(gatito, "|");
         //aqui obtenemos el nombre del gato
@@ -326,7 +344,7 @@ int escribirArchivo(gato *g){
     string tmp_raza(g->raza);
     string tmp_sexo(g->sexo);
     string tmp_estado(g->estado);
-    archivo << tmp_situacion + "|" + tmp_nombre + "|" + tmp_raza + "|" + tmp_sexo + "|" + tmp_estado;
+    archivo << tmp_situacion + "|" + tmp_nombre + "|" + tmp_raza + "|" + tmp_sexo + "|" + tmp_estado << endl;
     archivo.close();
     return 1;
 }
@@ -354,6 +372,8 @@ int modificar_Archivo(const char nombre[20]){
     while(!archivo.eof()){
         getline(archivo,texto);
         strcpy(gatito,texto.c_str());
+        if(strcmp(gatito,"") == 0)
+            break;
         //aqui obtenemos la situacion del gato
         if(pos == cont){    // es el gato a cambiar la situacion de ALTA a BAJA
             char *situacionvieja = strtok(gatito,"|");
@@ -372,7 +392,7 @@ int modificar_Archivo(const char nombre[20]){
                 string tmp_raza(raza);
                 string tmp_sexo(sexo);
                 string tmp_estado(estado);
-                auxiliar << "BAJA|" + tmp_nombregato+ "|" + tmp_raza + "|" + tmp_sexo + "|" + tmp_estado;
+                auxiliar << "BAJA|" + tmp_nombregato+ "|" + tmp_raza + "|" + tmp_sexo + "|" + tmp_estado << endl;
             }
         }
         else{
@@ -406,7 +426,8 @@ gato* devolver_gato(char nombre[20]){
     while(!archivo.eof()){
         getline(archivo,texto);
         strcpy(gatito,texto.c_str());
-
+        if(strcmp(gatito,"") == 0)
+            break;
         //aqui obtenemos la situacion del gato
         pch = strtok(gatito, "|");
         //aqui obtenemos el nombre del gato
@@ -449,6 +470,8 @@ int obtener_Rescatados(const char *path){
     while(!archivo1.eof()){
         getline(archivo1,texto);
         strcpy(gatito,texto.c_str());
+        if(strcmp(gatito,"") == 0)
+            break;
         pch = strtok(gatito, "|");
         if(strcmp(pch,"ALTA") == 0) {     //consideramos a los gatos en situación de ALTA como rescatados.
             archivo2 << texto;
