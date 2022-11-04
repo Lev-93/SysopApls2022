@@ -269,16 +269,14 @@ borrar() {
             tar -xvPf "$papelera" "$archivo_a_borrar" 1>/dev/null
             tar --delete --file="$papelera" "$archivo_a_borrar"
             extraerCadena "$archivo_a_borrar"
-            mv "$archivo_a_borrar" "$cadenaExtraida"
         else
             echo "$archivosIguales" | awk 'BEGIN{FS=";"} {for(i=1; i < NF; i++) print $i}'
-            echo "¿Qué archivo desea recuperar?"
+            echo "¿Qué archivo desea eliminar?"
             read opcion
             seleccion="${arrayArchivos[$opcion]}"
             tar -xvPf "$papelera" "$seleccion" 1>/dev/null
             tar --delete --file="$papelera" "$seleccion"
             extraerCadena "$seleccion"
-            mv "$seleccion" "$cadenaExtraida"
         fi
     fi
     echo "Archivo eliminado"
