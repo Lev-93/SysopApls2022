@@ -222,6 +222,68 @@ recuperar() {
     echo "Archivo recuperado"
 }
 
+borrar() {
+    archivoBorrar="$1"
+    papelera="${HOME}/papelera.zip"
+
+    if [ ! -f "$papelera" ]; then
+        echo "Archivo papelera.zip no existe en el home del usuario"
+        echo "No existen archivos a recuperar"
+        exit 1
+    fi
+    if [ $(tar -tPf "$papelera" | wc -c) -eq 0 ]; then
+        echo "Papelera se encuentra vacía"
+        echo "No se puede recuperar archivo indicado"
+        exit 1
+    fi
+    if [ "$archivoBorrar" == "" ]; then
+        echo "Parámetro archivo a recuperar sin informar"
+        exit 1
+    fi
+
+    contadorArchivosIguales=0
+    archivosIguales=""
+    declare -a arrayArchivos
+    archivo_a_borrar=""
+
+    IFS=$'\n'
+    for archivo in $(realpath $(tar -tPf "$papelera")); do
+        rutaArchivo=$(dirname "$archivo")
+        nombreArchivo=$(basename "$archivo")
+        extraerCadena "$nombreArchivo"
+        nombreArchivo=$cadenaExtraida
+
+        if [ "$nombreArchivo" == "$archivoBorrar" ]; then
+            let contadorArchivosIguales=contadorArchivosIguales+1
+            archivosIguales="$archivosIguales$contadorArchivosIguales - $nombreArchivo $rutaArchivo;"
+            arrayArchivos[$contadorArchivosIguales]="$archivo"
+            archivo_a_borrar="$archivo"
+        fi
+    done
+
+    if [ "$contadorArchivosIguales" -eq 0 ]; then
+        echo "No existe el archivo en la papelera"
+        exit 1
+    else
+        if [ "$contadorArchivosIguales" -eq 1 ]; then
+            tar -xvPf "$papelera" "$archivo_a_borrar" 1>/dev/null
+            tar --delete --file="$papelera" "$archivo_a_borrar"
+            extraerCadena "$archivo_a_borrar"
+            mv "$archivo_a_borrar" "$cadenaExtraida"
+        else
+            echo "$archivosIguales" | awk 'BEGIN{FS=";"} {for(i=1; i < NF; i++) print $i}'
+            echo "¿Qué archivo desea recuperar?"
+            read opcion
+            seleccion="${arrayArchivos[$opcion]}"
+            tar -xvPf "$papelera" "$seleccion" 1>/dev/null
+            tar --delete --file="$papelera" "$seleccion"
+            extraerCadena "$seleccion"
+            mv "$seleccion" "$cadenaExtraida"
+        fi
+    fi
+    echo "Archivo eliminado"
+}
+
 # Función que estrae la ruta usando un delimitador
 extraerCadena() {
     local ruta="$1"
@@ -269,6 +331,10 @@ case "$1" in
     recuperar "$2"
     exit 0
     ;;
+"--borrar")
+	borrar "$2"
+	exit 0
+;;
 *)
     echo "Error en invocar al script"
     echo "Por favor consulte la ayuda"
