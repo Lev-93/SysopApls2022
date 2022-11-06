@@ -70,6 +70,8 @@ ayuda() {
     echo "  5) Eliminar archivo (Se envía a la papelera): "
     echo "      ./Ejercicio6.sh --eliminar archivo        "
     echo "                                                "
+    echo "  6) Borrar archivo (se elimina de la papelera) "
+    echo "  	./Ejercicio06.sh --borrar archivo         "
     echo "************************************************"
 }
 

@@ -47,6 +47,8 @@ Recuperar archivo de papelera:
 .EXAMPLE
 Eliminar archivo (Se envía a la papelera):
   ./Ejercicio06.ps1 -eliminar archivo 
+.EXAMPLE
+   ./Ejercicio06.ps1 -borrar archivo
 #>
 
 param(
