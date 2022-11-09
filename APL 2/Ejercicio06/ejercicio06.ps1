@@ -325,6 +325,7 @@ function borrar{
       exit 1;
         }
     }
+	$zip.Dispose();
 }
 
 if($listar){

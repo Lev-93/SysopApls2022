@@ -55,6 +55,8 @@ using namespace std;
 
 acciones* accion;
 
+
+void realizar_Actividades();
 /***********************************Semaforos**********************************/
 void eliminar_Sem();
 void inicializarSemaforos();
@@ -163,12 +165,22 @@ int main(int argc, char *argv[]){
     sem_post(semaforos[1]);
     //V(TC)
     sem_post(semaforos[3]);
-    int cont = 0;
+
     while (1) {
         sem_wait(semaforos[4]);
         // P (TS) Turno del servidor, inicia el 0 y solo tendra un 1 de valor una ves que termine de ejecutar algun proceso cliente.
         sem_wait(semaforos[2]);
         // P(MC) Bloqueamos la memoria compartida.
+        realizar_Actividades();
+        sem_post(semaforos[2]);
+        //V(MC)
+        sem_post(semaforos[3]);
+        // V(TC)
+    }
+   exit(EXIT_SUCCESS);
+}
+
+void realizar_Actividades(){
         acciones *memoria = abrir_mem_comp();
         if(memoria->alta == 1){
             gato *aux = (gato*)malloc(sizeof(gato));
@@ -220,17 +232,8 @@ int main(int argc, char *argv[]){
             memoria->consultar = 0;
         }
         cerrar_mem_comp(memoria);
-        sem_post(semaforos[2]);
-        //V(MC)
-        sem_post(semaforos[3]);
-        // V(TC)
-        cont++;
-        sleep(5); /* Espera 5 segundos */
-        if(cont == 6)
-            kill(getpid(),SIGUSR1);
-    }
-   exit(EXIT_SUCCESS);
 }
+
 
 void eliminar_Sem(){
     sem_close(semaforos[0]);
@@ -260,6 +263,27 @@ void inicializarSemaforos(){
 }
 
 void liberar_Recursos(int signum){
+    // Si dicho semaforo vale 0 en ese momento significa que ya hay otra instancia de semaforo ejecutando por lo que cerramos el proceso.
+    int valorClie = 85;
+    int valorTurnoClie = 22;
+    sem_getvalue(semaforos[1],&valorClie);
+    sem_getvalue(semaforos[3],&valorTurnoClie);
+    if(valorClie == 0 && valorTurnoClie == 0){
+        int valorMC = 22;
+        sem_getvalue(semaforos[2],&valorMC);
+        if(valorMC == 0){
+            realizar_Actividades();
+            sem_post(semaforos[2]);
+        }
+        else{
+            sem_wait(semaforos[2]);
+            realizar_Actividades();
+            sem_post(semaforos[2]);
+        }
+        sem_post(semaforos[1]);
+        sem_post(semaforos[3]);
+        
+    }
     eliminar_Sem();
     shm_unlink("miMmemoria");
     remove("gatos.txt");

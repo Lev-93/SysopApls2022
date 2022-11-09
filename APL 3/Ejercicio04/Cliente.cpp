@@ -34,12 +34,13 @@ typedef struct {
     char rescatados[20]; //nombre del archivo que se creara cada ves que se inicie una consulta general
 }acciones;
 
-sem_t* semaforos[4];
+sem_t* semaforos[5];
 /*
     0 - Cliente, el cual se liberara justo antes de comenzar el bucle infinito, se inicia en 0.
     1 - MC, (solo puede acceder un proceso por vez) se inicia en 1
     2 - TC, iniciara en 0, y se liberara antes de comenzar el bucle y al finalizar un ciclo de dicho bucle. 
     3 - TS, iniciara en 0 y solo se liberara cuando el cliente termine su actividad
+    4 - servidor
 */
 
 using namespace std;
@@ -48,6 +49,7 @@ using namespace std;
 
 void inicializarSemaforos();
 void cerrar_Sem();
+void liberar_semaforos();
 bool Ayuda(const char *);
 acciones* abrir_mem_comp();
 void cerrar_mem_comp(acciones*);
@@ -65,6 +67,14 @@ int main(int argc, char *argv[]){
     }
 
     inicializarSemaforos();
+    int valorSem = 2;
+    sem_getvalue(semaforos[4],&valorSem);
+    if(valorSem == 0){
+        cout << "Error, el servidor no se halla activado" << endl;
+        cerrar_Sem();
+        liberar_semaforos();
+        exit(EXIT_FAILURE);
+    }
     if(strcmp(argv[1],"ALTA") != 0 && strcmp(argv[1],"BAJA") != 0 && strcmp(argv[1],"CONSULTA") != 0){
         cout << "Error, parametro inválido" << endl;
         exit(EXIT_FAILURE);
@@ -307,6 +317,7 @@ void inicializarSemaforos(){
     semaforos[1] = sem_open("memComp",O_CREAT,0600,1);
     semaforos[2] = sem_open("t_Cliente",O_CREAT,0600,0);
     semaforos[3] = sem_open("t_Servidor",O_CREAT,0600,0);
+    semaforos[4] = sem_open("servidor",O_CREAT,0600,0);
 }
 
 void cerrar_Sem(){
@@ -314,6 +325,15 @@ void cerrar_Sem(){
     sem_close(semaforos[1]);
     sem_close(semaforos[2]);
     sem_close(semaforos[3]);
+    sem_close(semaforos[4]);
+}
+
+void liberar_semaforos(){
+    sem_unlink("servidor");
+    sem_unlink("cliente");
+    sem_unlink("memComp");
+    sem_unlink("t_Cliente");
+    sem_unlink("t_Servidor");
 }
 
 acciones* abrir_mem_comp(){
