@@ -60,6 +60,11 @@ int main(int argc, char *argv[]){
         cout << "Error, ingrese algún parametro" << endl;
         exit(EXIT_FAILURE);
     }
+    if(argc == 1){
+        cout << "Error, la script debe recibir parametros, para mas información consulte la ayuda" << endl;
+        cout << "./Cliente -h o -/Cliente --help" << endl;
+        exit(EXIT_FAILURE);
+    }
 
     if((strcmp(argv[1],"-h") == 0 || strcmp(argv[1],"--help") == 0) && argc == 2){
         Ayuda(argv[1]);

@@ -1,0 +1,1 @@
+IdMateria|Descripcion|Departamento

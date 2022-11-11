@@ -335,4 +335,46 @@ function procesamiento {
 
 }
 
+
+
+
+
+$cant=0
+$encabezadoPrueba=""
+$encabezadoMaterias="IdMateria|Descripcion|Departamento"
+foreach($line in Get-Content "$materias") {
+    $cant = $cant + 1
+    $encabezadoPrueba=$line
+}
+
+if($cant -eq 1 -and $encabezadoPrueba -eq $encabezadoMaterias){
+    Write-Output "Error, no hay materias cargadas"
+    exit 1;
+}
+else{
+    if($cant -eq 1){
+        Write-Output "Error, formato invalido de materias"
+        exit 1;
+    }
+}
+
+$cant=0
+$encabezadoPrueba=""
+$encabezadoNotas="DNI|IdMateria|PrimerParcial|SegundoParcial|Recuperatorio|Final"
+foreach($line in Get-Content "$notas") {
+    $cant = $cant + 1
+    $encabezadoPrueba=$line
+}
+if($cant -eq 1 -and $encabezadoPrueba -eq $encabezadoNotas){
+    Write-Output "Error, no hay notas cargadas"
+    exit 1;
+}
+else{
+    if($cant -eq 1){
+         Write-Output "Error, formato invalido de notas"
+         exit 1;
+    }
+}
+
+
 procesamiento -notas $notas -materias $materias
