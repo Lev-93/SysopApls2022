@@ -52,7 +52,7 @@ sem_t* semaforos[5];
 using namespace std;
 //necesitamos un identificador para la memoria compartida para que los diferentes procesos que vayan a utilizarla tengan una manera de referenciarla
 #define NombreMemoria "miMmemoria"
-
+#define MemPid "pidServidor"
 acciones* accion;
 
 
@@ -153,6 +153,16 @@ int main(int argc, char *argv[]){
 
     // con esto ya no estara relacionado más a la memoria compartida. Quizas cambiarlo ya que tendremos que cerrarla cuando se envie la señal
     munmap(memoria, sizeof(acciones));
+    
+    //creamos una memoria compartida especial donde guardaremos el pid de otro proceso que nos servira para matar el servidor mediante la señal sigusR1
+    int idAux = shm_open(MemPid, O_CREAT | O_RDWR, 0600);
+    ftruncate(idAux,sizeof(int));
+    int *pidA = (int*)mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED, idAux,0);
+    close(idAux);
+    *pidA = getpid();
+    munmap(pidA,sizeof(int));
+
+
     sem_post(semaforos[2]);
     //V(MC)
     
@@ -241,6 +251,7 @@ void eliminar_Sem(){
     sem_close(semaforos[2]);
     sem_close(semaforos[3]);
     sem_close(semaforos[4]);
+    sem_close(semaforos[5]);
     sem_unlink("servidor");
     sem_unlink("cliente");
     sem_unlink("memComp");
@@ -264,14 +275,13 @@ void inicializarSemaforos(){
 
 void liberar_Recursos(int signum){
     // Si dicho semaforo vale 0 en ese momento significa que ya hay otra instancia de semaforo ejecutando por lo que cerramos el proceso.
-    int valorClie = 85;
     int valorTurnoClie = 22;
-    sem_getvalue(semaforos[1],&valorClie);
     sem_getvalue(semaforos[3],&valorTurnoClie);
-    if(valorClie == 0 && valorTurnoClie == 0){
+    if(valorTurnoClie == 0){
         int valorMC = 22;
         sem_getvalue(semaforos[2],&valorMC);
         if(valorMC == 0){
+            //en este punto la señal llego cuando el servidor justo había abierto la memoria para atender al cliente
             realizar_Actividades();
             sem_post(semaforos[2]);
         }
@@ -282,7 +292,8 @@ void liberar_Recursos(int signum){
         }
         sem_post(semaforos[1]);
         sem_post(semaforos[3]);
-        
+        // Esperamos a que el cliente termine...
+        sleep(2);
     }
     eliminar_Sem();
     shm_unlink("miMmemoria");

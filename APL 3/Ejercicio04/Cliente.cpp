@@ -36,11 +36,11 @@ typedef struct {
 
 sem_t* semaforos[5];
 /*
-    0 - Cliente, el cual se liberara justo antes de comenzar el bucle infinito, se inicia en 0.
-    1 - MC, (solo puede acceder un proceso por vez) se inicia en 1
-    2 - TC, iniciara en 0, y se liberara antes de comenzar el bucle y al finalizar un ciclo de dicho bucle. 
-    3 - TS, iniciara en 0 y solo se liberara cuando el cliente termine su actividad
-    4 - servidor
+    0 - Servidor (solo puede haber 1) se inicia en 1 y rapidamente se ocupa por el primer demonio. se liberara cuando el servidor demonio sea detenido
+    1 - Cliente, el cual se liberara justo antes de comenzar el bucle infinito, se inicia en 0.
+    2 - MC, (solo puede acceder un proceso por vez) se inicia en 1
+    3 - TC, iniciara en 0, y se liberara antes de comenzar el bucle y al finalizar un ciclo de dicho bucle. 
+    4 - TS, iniciara en 0 y solo se liberara cuando el cliente termine su actividad
 */
 
 using namespace std;
@@ -56,10 +56,6 @@ void cerrar_mem_comp(acciones*);
 int leer_rescatados(const char[]);
 bool validar_parametro(const char[]);
 int main(int argc, char *argv[]){
-    if(argc < 1){
-        cout << "Error, ingrese algún parametro" << endl;
-        exit(EXIT_FAILURE);
-    }
     if(argc == 1){
         cout << "Error, la script debe recibir parametros, para mas información consulte la ayuda" << endl;
         cout << "./Cliente -h o -/Cliente --help" << endl;
@@ -70,54 +66,45 @@ int main(int argc, char *argv[]){
         Ayuda(argv[1]);
         exit(EXIT_SUCCESS);
     }
-
-    inicializarSemaforos();
-    int valorSem = 2;
-    sem_getvalue(semaforos[4],&valorSem);
-    if(valorSem == 0){
-        cout << "Error, el servidor no se halla activado" << endl;
-        cerrar_Sem();
-        liberar_semaforos();
-        exit(EXIT_FAILURE);
-    }
     if(strcmp(argv[1],"ALTA") != 0 && strcmp(argv[1],"BAJA") != 0 && strcmp(argv[1],"CONSULTA") != 0){
         cout << "Error, parametro inválido" << endl;
         exit(EXIT_FAILURE);
     }
+    inicializarSemaforos();
     //  P(Cliente)
-    sem_wait(semaforos[0]);
+    sem_wait(semaforos[1]);
     //  P(TC)
-    sem_wait(semaforos[2]);
+    sem_wait(semaforos[3]);
     if(strcmp(argv[1],"ALTA") == 0){
         if(argc == 6){
             if(validar_parametro(argv[2]) == false || validar_parametro(argv[3]) == false){
-                sem_post(semaforos[2]);
+                sem_post(semaforos[3]);
                 //V(TC)
-                sem_post(semaforos[0]);
+                sem_post(semaforos[1]);
                 //V(Cliente)
                 cerrar_Sem();
                 exit(EXIT_FAILURE);
             }
             if(strcmp(argv[4],"M") != 0 && strcmp(argv[4],"H") != 0){
                 cout << "Error, el sexo debe ser Macho (M) o Hembra (H)" << endl;
-                sem_post(semaforos[2]);
+                sem_post(semaforos[3]);
                 //V(TC)
-                sem_post(semaforos[0]);
+                sem_post(semaforos[1]);
                 //V(Cliente)
                 cerrar_Sem();
                 exit(EXIT_FAILURE);
              }
             if(strcmp(argv[5],"CA") != 0 && strcmp(argv[5],"SC") != 0){
                 cout << "Error, el estado debe ser Castrado (CA) o Sin castrar (SC)" << endl;
-                sem_post(semaforos[2]);
+                sem_post(semaforos[3]);
                 //V(TC)
-                sem_post(semaforos[0]);
+                sem_post(semaforos[1]);
                 //V(Cliente)
                 cerrar_Sem();
                 exit(EXIT_FAILURE);
             }
             // P(MC)
-            sem_wait(semaforos[1]);
+            sem_wait(semaforos[2]);
             acciones *a = abrir_mem_comp();
             strcpy(a->g.situacion,argv[1]);
             strcpy(a->g.nombre,argv[2]);
@@ -127,13 +114,13 @@ int main(int argc, char *argv[]){
             a->alta = 1;
             cerrar_mem_comp(a);
 
-            sem_post(semaforos[1]);
+            sem_post(semaforos[2]);
             // V(MC)    liberamos la memoria compartida
-            sem_post(semaforos[3]);
+            sem_post(semaforos[4]);
             // V(TS)    le damos el turno al servidor
-            sem_wait(semaforos[2]);
+            sem_wait(semaforos[3]);
             //P(TC)     bloqueamos el turno del cliente, como este estara en 0 en este momento, se bloqueara el proceso a la espera de que el servidor termine su turno.
-            sem_wait(semaforos[1]);
+            sem_wait(semaforos[2]);
             // P(MC)
             a = abrir_mem_comp();
             if(strcmp(a->notialta,"") != 0){
@@ -142,14 +129,14 @@ int main(int argc, char *argv[]){
                 strcpy(a->notialta,"");
             }
             cerrar_mem_comp(a);
-            sem_post(semaforos[1]);
+            sem_post(semaforos[2]);
             // V(MC)
         }
         else{
             cout << "Error, cantidad de parametros erronea junto a la acción alta.";
-            sem_post(semaforos[2]);
+            sem_post(semaforos[3]);
             //V(TC)
-            sem_post(semaforos[0]);
+            sem_post(semaforos[1]);
             //V(Cliente)
             cerrar_Sem();
             exit(EXIT_FAILURE);
@@ -158,26 +145,26 @@ int main(int argc, char *argv[]){
     if(strcmp(argv[1],"BAJA") == 0){
         if(argc == 3){
             if(validar_parametro(argv[2]) == false){
-                sem_post(semaforos[2]);
+                sem_post(semaforos[3]);
                 //V(TC)
-                sem_post(semaforos[0]);
+                sem_post(semaforos[1]);
                 //V(Cliente)
                 cerrar_Sem();
                 exit(EXIT_FAILURE);
             }
-            sem_wait(semaforos[1]);
+            sem_wait(semaforos[2]);
             // P(MC)
             acciones *a = abrir_mem_comp();
             strcpy(a->g.nombre,argv[2]);
             a->baja = 1;
             cerrar_mem_comp(a);
-            sem_post(semaforos[1]);
+            sem_post(semaforos[2]);
             // V(MC)
-            sem_post(semaforos[3]);
+            sem_post(semaforos[4]);
             // V(TS)
-            sem_wait(semaforos[2]);
+            sem_wait(semaforos[3]);
             // P(TC)
-            sem_wait(semaforos[1]);
+            sem_wait(semaforos[2]);
             // P(MC)
             a = abrir_mem_comp();
             if(strcmp(a->notibaja,"") != 0){
@@ -186,14 +173,14 @@ int main(int argc, char *argv[]){
                 strcpy(a->notibaja,"");
             }
             cerrar_mem_comp(a);
-            sem_post(semaforos[1]);
+            sem_post(semaforos[2]);
             // V(MC)
         }
         else{
             cout << "Error, cantidad de parametros erronea junto a la acción baja";
-            sem_post(semaforos[2]);
+            sem_post(semaforos[3]);
             //V(TC)
-            sem_post(semaforos[0]);
+            sem_post(semaforos[1]);
             //V(Cliente)
             cerrar_Sem();
             exit(EXIT_FAILURE);
@@ -204,27 +191,27 @@ int main(int argc, char *argv[]){
         if(argc == 3){
             //En caso de mandar un nombre en concreto...
             if(validar_parametro(argv[2]) == false){
-                sem_post(semaforos[2]);
+                sem_post(semaforos[3]);
                 //V(TC)
-                sem_post(semaforos[0]);
+                sem_post(semaforos[1]);
                 //V(Cliente)
                 cerrar_Sem();
                 exit(EXIT_FAILURE);
             }
-            sem_wait(semaforos[1]);
+            sem_wait(semaforos[2]);
             // P(MC)
             acciones *a = abrir_mem_comp();
             strcpy(a->g.nombre,argv[2]);
             a->consultar = 1;
             cerrar_mem_comp(a);
-            sem_post(semaforos[1]);
+            sem_post(semaforos[2]);
             // V(MC)
 
-            sem_post(semaforos[3]);
+            sem_post(semaforos[4]);
             // V(TS)
-            sem_wait(semaforos[2]);
+            sem_wait(semaforos[3]);
             // P(TC)
-            sem_wait(semaforos[1]);
+            sem_wait(semaforos[2]);
             // P(MC)
             a = abrir_mem_comp();
             if(strcmp(a->consulta,"") != 0){
@@ -250,24 +237,24 @@ int main(int argc, char *argv[]){
                     strcpy(a->g.estado,"");
             }
             cerrar_mem_comp(a);
-            sem_post(semaforos[1]);
+            sem_post(semaforos[2]);
             // V(MC)
         }
         else{
             if(argc == 2){
-                sem_wait(semaforos[1]);
+                sem_wait(semaforos[2]);
                 // P(MC)
                 acciones *a = abrir_mem_comp();
                 strcpy(a->rescatados,"rescatados.txt");
                 a->consultar = 1;
                 cerrar_mem_comp(a);
-                sem_post(semaforos[1]);
+                sem_post(semaforos[2]);
                 //V(MC)
-                sem_post(semaforos[3]);
+                sem_post(semaforos[4]);
                 // V(TS)
-                sem_wait(semaforos[2]);
+                sem_wait(semaforos[3]);
                 // P(TC)
-                sem_wait(semaforos[1]);
+                sem_wait(semaforos[2]);
                 // P(MC)
                 a = abrir_mem_comp();
                 if(strcmp(a->consulta,"") != 0){
@@ -278,14 +265,14 @@ int main(int argc, char *argv[]){
                 else
                     int res = leer_rescatados(a->rescatados);
                 cerrar_mem_comp(a);
-                sem_post(semaforos[1]);
+                sem_post(semaforos[2]);
                 // V(MC)
             }
             else{
                 cout << "Error, cantidad de parametros erronea junto a la acción consultar";
-                sem_post(semaforos[2]);
+                sem_post(semaforos[3]);
                 //V(TC)
-                sem_post(semaforos[0]);
+                sem_post(semaforos[1]);
                 //V(Cliente)
                 cerrar_Sem();
                 exit(EXIT_FAILURE);
@@ -293,9 +280,9 @@ int main(int argc, char *argv[]){
         }
     }
     // V(Cliente)
-    sem_post(semaforos[0]);
-    // V(TS)
-    sem_post(semaforos[2]);
+    sem_post(semaforos[1]);
+    // V(TC)
+    sem_post(semaforos[3]);
     cerrar_Sem();
     return EXIT_SUCCESS;
 }
@@ -318,11 +305,20 @@ bool Ayuda(const char *cad)
 }
 
 void inicializarSemaforos(){
-    semaforos[0] = sem_open("cliente",O_CREAT,0600,0);
-    semaforos[1] = sem_open("memComp",O_CREAT,0600,1);
-    semaforos[2] = sem_open("t_Cliente",O_CREAT,0600,0);
-    semaforos[3] = sem_open("t_Servidor",O_CREAT,0600,0);
-    semaforos[4] = sem_open("servidor",O_CREAT,0600,0);
+    semaforos[0] = sem_open("servidor",O_CREAT,0600,1);
+    int valorSemServi = 65;
+    sem_getvalue(semaforos[0],&valorSemServi);
+    if(valorSemServi == 1){
+        cout << "Error, servidor inactivo." << endl;
+        cout << "Intente mas tarde" << endl;
+        sem_close(semaforos[0]);
+        sem_unlink("servidor");
+        exit(EXIT_FAILURE);
+    }
+    semaforos[1] = sem_open("cliente",O_CREAT,0600,0);
+    semaforos[2] = sem_open("memComp",O_CREAT,0600,1);
+    semaforos[3] = sem_open("t_Cliente",O_CREAT,0600,0);
+    semaforos[4] = sem_open("t_Servidor",O_CREAT,0600,0);
 }
 
 void cerrar_Sem(){
@@ -334,7 +330,6 @@ void cerrar_Sem(){
 }
 
 void liberar_semaforos(){
-    sem_unlink("servidor");
     sem_unlink("cliente");
     sem_unlink("memComp");
     sem_unlink("t_Cliente");
