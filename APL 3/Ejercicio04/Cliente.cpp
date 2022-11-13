@@ -189,7 +189,6 @@ int main(int argc, char *argv[]){
 
     if(strcmp(argv[1],"CONSULTA") == 0){
         if(argc == 3){
-            cout << "192" << endl;
             //En caso de mandar un nombre en concreto...
             if(validar_parametro(argv[2]) == false){
                 sem_post(semaforos[3]);
@@ -243,7 +242,6 @@ int main(int argc, char *argv[]){
         }
         else{
             if(argc == 2){
-                cout << "linea 245" << endl;
                 sem_wait(semaforos[2]);
                 // P(MC)
                 acciones *a = abrir_mem_comp();

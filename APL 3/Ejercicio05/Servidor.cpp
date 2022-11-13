@@ -226,6 +226,7 @@ string realizar_Actividades(const char mensaje[]){
                 strcat(respuesta,g->sexo);
                 strcat(respuesta,"|");
                 strcat(respuesta,g->estado);
+                free(g);
                 return respuesta;
             }
         }

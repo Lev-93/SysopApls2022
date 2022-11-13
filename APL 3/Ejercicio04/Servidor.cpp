@@ -207,6 +207,7 @@ void realizar_Actividades(){
             strcpy(memoria->g.raza,"");
             strcpy(memoria->g.sexo,"");
             strcpy(memoria->g.estado,"");
+            free(aux);
             memoria->alta = 0;
         }
         if(memoria->baja == 1){
@@ -232,6 +233,7 @@ void realizar_Actividades(){
                     strcpy(memoria->g.sexo,aux->sexo);
                     strcpy(memoria->g.estado,aux->estado);
                     strcpy(memoria->consulta,"");
+                    free(aux);
                 }
             }
             else{ //mostrar toda la tabla de TODOS LOS GATOS RESCATADOS, es decir, los que poseen ALTA
@@ -490,7 +492,7 @@ int obtener_Rescatados(const char *path){
     while(!archivo1.eof()){
         getline(archivo1,texto);
         strcpy(gatito,texto.c_str());
-        if(strcmp(gatito,"") == 0)
+        if(strcmp(gatito,"") == 0)      //Probar con strlen
             break;
         pch = strtok(gatito, "|");
         if(strcmp(pch,"ALTA") == 0) {     //consideramos a los gatos en situación de ALTA como rescatados.
