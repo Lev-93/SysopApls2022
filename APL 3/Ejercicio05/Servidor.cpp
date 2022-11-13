@@ -11,14 +11,17 @@
 #include <fcntl.h>
 #include <cstring>
 #include <signal.h>
-#include <vector>
 #include <string>
 #include <string.h>
 #include <sys/types.h>
 #include <linux/fs.h>
 #include <sys/param.h>
 #include <time.h>
-#include <syslog.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <sys/socket.h>
+
 
 typedef struct {
     char situacion[5]; // ALTA (ingreso/rescatado) BAJA (adopcion/egreso)
@@ -28,35 +31,18 @@ typedef struct {
     char estado[3]; // CA (castrado) o SC (sin castrar) 
 }gato;
 
-
-typedef struct {
-	int baja;
-	int alta;
-	int consultar;
-	char notibaja[100];
-	char notialta[100];
-	char consulta[100];
-    gato g;
-    char rescatados[20]; //nombre del archivo que se creara cada ves que se inicie una consulta general
-}acciones;
-
-sem_t* semaforos[5];
+sem_t* semaforos[2];
 /*
     0 - Servidor (solo puede haber 1) se inicia en 1 y rapidamente se ocupa por el primer demonio. se liberara cuando el servidor demonio sea detenido
-    1 - Cliente, el cual se liberara justo antes de comenzar el bucle infinito, se inicia en 0.
-    2 - MC, (solo puede acceder un proceso por vez) se inicia en 1
-    3 - TC, iniciara en 0, y se liberara antes de comenzar el bucle y al finalizar un ciclo de dicho bucle. 
-    4 - TS, iniciara en 0 y solo se liberara cuando el cliente termine su actividad
+    1 - Recurso, (solo puede acceder un proceso por vez) se inicia en 1
 */
 
 using namespace std;
 //necesitamos un identificador para la memoria compartida para que los diferentes procesos que vayan a utilizarla tengan una manera de referenciarla
-#define NombreMemoria "miMmemoria"
-#define MemPid "pidServidor"
-acciones* accion;
+#define MemPid "pidServidorSocket"
 
 
-void realizar_Actividades();
+string realizar_Actividades(const char[]);
 /***********************************Semaforos**********************************/
 void eliminar_Sem();
 void inicializarSemaforos();
@@ -75,10 +61,6 @@ gato* devolver_gato(char[20]);
 int obtener_Rescatados(const char*);
 /***********************************Archivos**********************************/
 
-/***********************************Memoria compartida**********************************/
-acciones* abrir_mem_comp();
-void cerrar_mem_comp(acciones*);
-/***********************************Memoria compartida**********************************/
 
 int main(int argc, char *argv[]){
     if(argc > 1){
@@ -136,24 +118,7 @@ int main(int argc, char *argv[]){
     //P(Servidor)
     sem_wait(semaforos[0]);
     /*************************************************************************************************/
-    //P(MC)
-    sem_wait(semaforos[2]);
-    //crear la memoria compartida
-    int idMemoria = shm_open(NombreMemoria, O_CREAT | O_RDWR, 0600); // obtenemos un numero que nos identifica esta memoria.
-    //me va a determinar/setear el tamaño de la memoria, asociara los tamaños y nos limpiara un poco lo que hay allí dentro.
-    ftruncate(idMemoria,sizeof(acciones));
 
-    // definir nuestra variable que es la variable que estara mapeada a memoria compartida.
-    // la memoria compartida ya esta creada y tenermos un identificador, pero no podemos accederla..
-
-    //me va a mapear, o a relacionar un segmento de memoria a una variable. agarra un espacio de memoria y mapearlo/darnos la direccion de memoria de ese espacio de memoria.
-    acciones *memoria = (acciones*)mmap(NULL, sizeof(acciones), PROT_READ | PROT_WRITE, MAP_SHARED, idMemoria,0);
-
-    close(idMemoria);
-
-    // con esto ya no estara relacionado más a la memoria compartida. Quizas cambiarlo ya que tendremos que cerrarla cuando se envie la señal
-    munmap(memoria, sizeof(acciones));
-    
     //creamos una memoria compartida especial donde guardaremos el pid de otro proceso que nos servira para matar el servidor mediante la señal sigusR1
     int idAux = shm_open(MemPid, O_CREAT | O_RDWR, 0600);
     ftruncate(idAux,sizeof(int));
@@ -161,141 +126,134 @@ int main(int argc, char *argv[]){
     close(idAux);
     *pidA = getpid();
     munmap(pidA,sizeof(int));
+    //
 
-
-    sem_post(semaforos[2]);
-    //V(MC)
-    
     //Manejo de señales, cuando se reciban algunas de las dos señales se ejecutara su correspondiente función.
     signal(SIGUSR1, liberar_Recursos);
     //si esta la señal Ctrl+c la ignora.
     signal(SIGINT,SIG_IGN);
 
-    //V(Cliente) // A partir de aqui ya podran operar los clientes.
-    sem_post(semaforos[1]);
-    //V(TC)
-    sem_post(semaforos[3]);
+    struct sockaddr_in serverConfig;
+    memset(&serverConfig,'0',sizeof(serverConfig));
+
+    serverConfig.sin_family = AF_INET; //IPV4: 127.0.0.1
+    serverConfig.sin_addr.s_addr = htonl(INADDR_ANY);
+    serverConfig.sin_port = htons(5000);
+
+    int socketEscucha = socket(AF_INET,SOCK_STREAM,0);
+    bind(socketEscucha,(struct sockaddr *)&serverConfig,sizeof(serverConfig));
+
+    listen(socketEscucha,3); // hasta 3 clientes pueden estar encolados
 
     while (1) {
-        sem_wait(semaforos[4]);
-        // P (TS) Turno del servidor, inicia el 0 y solo tendra un 1 de valor una ves que termine de ejecutar algun proceso cliente.
-        sem_wait(semaforos[2]);
-        // P(MC) Bloqueamos la memoria compartida.
-        realizar_Actividades();
-        sem_post(semaforos[2]);
-        //V(MC)
-        sem_post(semaforos[3]);
-        // V(TC)
+        int socketComunicacion = accept(socketEscucha, (struct sockaddr *) NULL, NULL);
+        
+        char mensajeCliente[2000];
+
+        int bytesRecibidos = 0;
+        while((bytesRecibidos = read(socketComunicacion,mensajeCliente,sizeof(mensajeCliente) - 1))){
+             
+        }
+        
+        string sendBuff = realizar_Actividades(mensajeCliente);
+
+
+        //Escibrimos en el socket de comunicacion que vamos a mandar y el tamaño que tiene lo que vamos a mandar
+        char aux[200];
+        strcpy(aux,sendBuff.c_str());
+        write(socketComunicacion,aux,strlen(aux));
+        close(socketComunicacion);
     }
    exit(EXIT_SUCCESS);
 }
 
-void realizar_Actividades(){
-        acciones *memoria = abrir_mem_comp();
-        if(memoria->alta == 1){
-            gato *aux = (gato*)malloc(sizeof(gato));
-            strcpy(aux->situacion,memoria->g.situacion);
-            strcpy(aux->nombre,memoria->g.nombre);
-            strcpy(aux->raza,memoria->g.raza);
-            strcpy(aux->estado,memoria->g.estado);
-            strcpy(aux->sexo,memoria->g.sexo);
-            if(escribirArchivo(aux) == -1){
-                strcpy(memoria->notialta,"El nombre ya existe, pruebe con otro");
-            }
-            strcpy(memoria->g.situacion,"");
-            strcpy(memoria->g.nombre,"");
-            strcpy(memoria->g.raza,"");
-            strcpy(memoria->g.sexo,"");
-            strcpy(memoria->g.estado,"");
-            memoria->alta = 0;
+string realizar_Actividades(const char mensaje[]){
+    char aux[2000];
+    strcpy(aux,mensaje);
+    char *ptr_situacion = strtok(aux,"|");
+    if(strcmp(ptr_situacion,"ALTA") == 0){
+        gato *g = (gato*)malloc(sizeof(gato));
+        if(g == NULL)
+            exit(EXIT_FAILURE);
+        char *p;
+        p = strtok(NULL,"|");
+        strcpy(g->situacion,p);
+        p = strtok(NULL,"|");
+        strcpy(g->nombre,p);
+        p = strtok(NULL,"|");
+        strcpy(g->raza,p);
+        p = strtok(NULL,"|");
+        strcpy(g->sexo,p);
+        p = strtok(NULL,"|");
+        strcpy(g->estado,p);
+        int i = escribirArchivo(g);
+        if(i == -1)
+            return "Error, el gato ya se encuentra registrado";
+        free(g);
+        return "Operacion exitosa";
+    }
+    else{
+        if(strcmp(ptr_situacion,"BAJA") == 0){
+            char *ptr_nombre = strtok(NULL,"|");
+            int r = modificar_Archivo(ptr_nombre);
+            if(r == -2)
+                return "Error, el gato ya estaba dado de baja";
+            if(r == -1)
+                return "Error, el gato no se encuentra registrado";
+            return "Operacion exitosa";
         }
-        if(memoria->baja == 1){
-            int res = modificar_Archivo(memoria->g.nombre);
-            if(res == -1){
-                strcpy(memoria->notibaja,"El gato no se encuentra registrado, vuelva a intentarlo");
+        else{
+            // La accion a realizar es consultar en este caso.
+            char *ptr_nombre = strtok(NULL,"|");
+            if(strcmp(ptr_nombre,"rescatados.txt") == 0){
+                int r = obtener_Rescatados("rescatados.txt");
+                if(r == 0)
+                    return "No se hallan gatos rescatados";
+                else
+                    return "Operacion exitosa";
             }
-            if(res == -2){
-                strcpy(memoria->notibaja,"El gato ya estaba de baja");
+            else{
+                gato *g = devolver_gato(ptr_nombre);
+                if(g == NULL)
+                    return "Error, el gato no se encuentra registrado";
+                char respuesta[200];
+                strcat(respuesta,g->situacion);
+                strcat(respuesta,"|");
+                strcat(respuesta,g->nombre);
+                strcat(respuesta,"|");
+                strcat(respuesta,g->raza);
+                strcat(respuesta,"|");
+                strcat(respuesta,g->sexo);
+                strcat(respuesta,"|");
+                strcat(respuesta,g->estado);
+                return respuesta;
             }
-            strcpy(memoria->g.nombre,"");
-            memoria->baja = 0;
         }
-        if(memoria->consultar == 1){
-            if(strcmp(memoria->g.nombre,"") != 0){ //significa que se ingreso el nombre
-                int pos = consultarArchivo(memoria->g.nombre);
-                if(pos == -1 || pos == -2)
-                    strcpy(memoria->consulta,"El gato no se encuentra registrado");
-                else{ //si el gato si fue encontrado...
-                    gato *aux = devolver_gato(memoria->g.nombre);
-                    strcpy(memoria->g.situacion,aux->situacion);
-                    strcpy(memoria->g.raza,aux->raza);
-                    strcpy(memoria->g.sexo,aux->sexo);
-                    strcpy(memoria->g.estado,aux->estado);
-                    strcpy(memoria->consulta,"");
-                }
-            }
-            else{ //mostrar toda la tabla de TODOS LOS GATOS RESCATADOS, es decir, los que poseen ALTA
-                int res = obtener_Rescatados(memoria->rescatados);
-                if(res == -2 || res == -1)
-                    strcpy(memoria->consulta,"No se encuentran gatos rescatados (situacion = ALTA)");
-            }
-            memoria->consultar = 0;
-        }
-        cerrar_mem_comp(memoria);
+    }
+    return NULL;
 }
 
 
 void eliminar_Sem(){
     sem_close(semaforos[0]);
     sem_close(semaforos[1]);
-    sem_close(semaforos[2]);
-    sem_close(semaforos[3]);
-    sem_close(semaforos[4]);
-    sem_unlink("servidor");
-    sem_unlink("cliente");
-    sem_unlink("memComp");
-    sem_unlink("t_Cliente");
-    sem_unlink("t_Servidor");
+    sem_unlink("servidorSocket");
+    sem_unlink("Recurso");
 }
 
 void inicializarSemaforos(){
-    semaforos[0] = sem_open("servidor",O_CREAT,0600,1);
+    semaforos[0] = sem_open("servidorSocket",O_CREAT,0600,1);
     
     // Si dicho semaforo vale 0 en ese momento significa que ya hay otra instancia de semaforo ejecutando por lo que cerramos el proceso.
     int valorSemServi = 85;
     sem_getvalue(semaforos[0],&valorSemServi);
     if(valorSemServi == 0)
         exit(EXIT_FAILURE);
-    semaforos[1] = sem_open("cliente",O_CREAT,0600,0);
-    semaforos[2] = sem_open("memComp",O_CREAT,0600,1);
-    semaforos[3] = sem_open("t_Cliente",O_CREAT,0600,0);
-    semaforos[4] = sem_open("t_Servidor",O_CREAT,0600,0);
+    semaforos[1] = sem_open("Recurso",O_CREAT,0600,3);
 }
 
 void liberar_Recursos(int signum){
-    // Si dicho semaforo vale 0 en ese momento significa que ya hay otra instancia de semaforo ejecutando por lo que cerramos el proceso.
-    int valorTurnoClie = 22;
-    sem_getvalue(semaforos[3],&valorTurnoClie);
-    if(valorTurnoClie == 0){
-        int valorMC = 22;
-        sem_getvalue(semaforos[2],&valorMC);
-        if(valorMC == 0){
-            //en este punto la señal llego cuando el servidor justo había abierto la memoria para atender al cliente
-            realizar_Actividades();
-            sem_post(semaforos[2]);
-        }
-        else{
-            sem_wait(semaforos[2]);
-            realizar_Actividades();
-            sem_post(semaforos[2]);
-        }
-        sem_post(semaforos[1]);
-        sem_post(semaforos[3]);
-        // Esperamos a que el cliente termine...
-        sleep(2);
-    }
     eliminar_Sem();
-    shm_unlink("miMmemoria");
     remove("gatos.txt");
     remove("salida.txt");
     exit(EXIT_SUCCESS);
@@ -487,6 +445,7 @@ int obtener_Rescatados(const char *path){
         archivo1.close();
         return -2;
     }
+    int cont = 0;
     while(!archivo1.eof()){
         getline(archivo1,texto);
         strcpy(gatito,texto.c_str());
@@ -495,27 +454,10 @@ int obtener_Rescatados(const char *path){
         pch = strtok(gatito, "|");
         if(strcmp(pch,"ALTA") == 0) {     //consideramos a los gatos en situación de ALTA como rescatados.
             archivo2 << texto << endl;
+            cont++;
         }
     }
     archivo1.close();
     archivo2.close();
-    return 0;
-}
-
-acciones* abrir_mem_comp(){
-    int idMemoria = shm_open(NombreMemoria, O_CREAT | O_RDWR, 0600); // obtenemos un numero que nos identifica esta memoria.
-    // definir nuestra variable que es la variable que estara mapeada a memoria compartida.
-    // la memoria compartida ya esta creada y tenermos un identificador, pero no podemos accederla..
-    //me va a determinar/setear el tamaño de la memoria, asociara los tamaños y nos limpiara un poco lo que hay allí dentro.
-    //ftruncate(idMemoria,sizeof(acciones));
-
-    //me va a mapear, o a relacionar un segmento de memoria a una variable. agarra un espacio de memoria y mapearlo/darnos la direccion de memoria de ese espacio de memoria.
-    acciones *memoria = (acciones *)mmap(NULL, sizeof(acciones), PROT_READ | PROT_WRITE, MAP_SHARED, idMemoria,0);
-
-    close(idMemoria);
-    return memoria;
-}
-
-void cerrar_mem_comp(acciones *a){
-    munmap(a, sizeof(acciones));
+    return cont;
 }

@@ -189,6 +189,7 @@ int main(int argc, char *argv[]){
 
     if(strcmp(argv[1],"CONSULTA") == 0){
         if(argc == 3){
+            cout << "192" << endl;
             //En caso de mandar un nombre en concreto...
             if(validar_parametro(argv[2]) == false){
                 sem_post(semaforos[3]);
@@ -242,6 +243,7 @@ int main(int argc, char *argv[]){
         }
         else{
             if(argc == 2){
+                cout << "linea 245" << endl;
                 sem_wait(semaforos[2]);
                 // P(MC)
                 acciones *a = abrir_mem_comp();
@@ -357,6 +359,7 @@ int leer_rescatados(const char path[20]){
     ifstream archivo;
     string texto;
     string tmp_path(path);
+    char gatito[100];
     archivo.open(tmp_path,ios::in);
     if(archivo.fail()){
         cout << "no se pudo abrir el archivo" << endl;
@@ -364,6 +367,9 @@ int leer_rescatados(const char path[20]){
     }
     while(!archivo.eof()){
         getline(archivo,texto);
+        strcpy(gatito,texto.c_str());
+        if(strcmp(gatito,"") == 0)
+            break;        
         cout << texto << endl;
     }
     archivo.close();
