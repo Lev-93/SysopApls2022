@@ -256,7 +256,7 @@ string enviarMensaje(const char mensajeCliente[]){
     while((bytesRecibidos = read(socketComunicacion,buffer,sizeof(buffer) - 1)) < 1){
         cout << "257" << endl;
     }
-    cout << "256" << endl;
+    cout << "259" << endl;
     string bu(buffer);
     puts(buffer);
     cout << bu << endl;

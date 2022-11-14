@@ -158,12 +158,12 @@ int main(int argc, char *argv[]){
         int bytesRecibidos = 0;
         bytesRecibidos = read(socketComunicacion,mensajeCliente,sizeof(mensajeCliente));
         if(bytesRecibidos > 0){   
-            string sendBuff = realizar_Actividades(mensajeCliente);
+            //string sendBuff = realizar_Actividades(mensajeCliente);
             //Escribimos en el socket de comunicacion que vamos a mandar y el tamaño que tiene lo que vamos a mandar
-            char aux[2000];
-            strcpy(aux,sendBuff.c_str());
-            //char cad[] = "Hola! Soy el proceso servidor";
-            write(socketComunicacion,aux,strlen(aux));
+            //char aux[2000];
+            //strcpy(aux,sendBuff.c_str());
+            char cad[] = "Hola! Soy el proceso servidor";
+            write(socketComunicacion,cad,strlen(cad));
             close(socketComunicacion);
         }
     }
@@ -173,13 +173,11 @@ int main(int argc, char *argv[]){
 string realizar_Actividades(const char mensaje[]){
     char aux[2000];
     strcpy(aux,mensaje);
-    char *ptr_situacion = strtok(aux,"|");
-    if(strcmp(ptr_situacion,"ALTA") == 0){
+    char *p = strtok(aux,"|");
+    if(strcmp(p,"ALTA") == 0){
         gato *g = (gato*)malloc(sizeof(gato));
         if(g == NULL)
             exit(EXIT_FAILURE);
-        char *p;
-        p = strtok(NULL,"|");
         strcpy(g->situacion,p);
         p = strtok(NULL,"|");
         strcpy(g->nombre,p);
@@ -190,13 +188,13 @@ string realizar_Actividades(const char mensaje[]){
         p = strtok(NULL,"|");
         strcpy(g->estado,p);
         int i = escribirArchivo(g);
+        free(g);
         if(i == -1)
             return "Error, el gato ya se encuentra registrado";
-        free(g);
         return "Operacion exitosa";
     }
     else{
-        if(strcmp(ptr_situacion,"BAJA") == 0){
+        if(strcmp(p,"BAJA") == 0){
             char *ptr_nombre = strtok(NULL,"|");
             int r = modificar_Archivo(ptr_nombre);
             if(r == -2)
