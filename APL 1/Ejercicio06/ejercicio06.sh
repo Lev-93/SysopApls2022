@@ -5,7 +5,7 @@
 # Nombre del script: Ejercicio6.sh
 # Número de ejercicio: 6
 # Trabajo Práctico: 1
-# Entrega: Primera entrega
+# Entrega: Cuarta entrega
 
 # ==============================================================
 
@@ -268,17 +268,19 @@ borrar() {
         exit 1
     else
         if [ "$contadorArchivosIguales" -eq 1 ]; then
-            tar -xvPf "$papelera" "$archivo_a_borrar" 1>/dev/null
+            echo "borrando archivo..."
+            #tar -xvf "$papelera" "$archivo_a_borrar" >/dev/null
+
             tar --delete --file="$papelera" "$archivo_a_borrar"
-            extraerCadena "$archivo_a_borrar"
+            #extraerCadena "$archivo_a_borrar"s
         else
             echo "$archivosIguales" | awk 'BEGIN{FS=";"} {for(i=1; i < NF; i++) print $i}'
             echo "¿Qué archivo desea eliminar?"
             read opcion
             seleccion="${arrayArchivos[$opcion]}"
-            tar -xvPf "$papelera" "$seleccion" 1>/dev/null
+            #tar -xvPf "$papelera" "$seleccion" 1>/dev/null
             tar --delete --file="$papelera" "$seleccion"
-            extraerCadena "$seleccion"
+            #extraerCadena "$seleccion"
         fi
     fi
     echo "Archivo eliminado"

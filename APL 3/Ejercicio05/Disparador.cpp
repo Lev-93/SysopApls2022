@@ -14,7 +14,7 @@
 #include <semaphore.h>
 using namespace std;
 
-#define MemPid "pidServidor"
+#define MemPid "pidServidorSocket"
 
 int main(){
     int idAux = shm_open(MemPid, 0100 | 02, 0600);

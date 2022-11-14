@@ -21,7 +21,8 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/socket.h>
-
+#include <netinet/in.h>
+#include <errno.h>
 
 typedef struct {
     char situacion[5]; // ALTA (ingreso/rescatado) BAJA (adopcion/egreso)

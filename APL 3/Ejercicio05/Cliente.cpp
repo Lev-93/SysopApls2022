@@ -225,12 +225,13 @@ bool validar_parametro(const char nombre[]){
 }
 
 string enviarMensaje(const char mensajeCliente[],char script[]){
+    const char IPADDR[] = "172.23.0.1";
     struct sockaddr_in socketConfig;
     memset(&socketConfig,'0',sizeof(socketConfig));
     
     socketConfig.sin_family = AF_INET;
     socketConfig.sin_port = htons(5000);
-    inet_pton(AF_INET,script,&socketConfig.sin_addr);
+    inet_pton(AF_INET,IPADDR, &socketConfig.sin_addr);
 
     int socketComunicacion = socket(AF_INET,SOCK_STREAM,0);
 
