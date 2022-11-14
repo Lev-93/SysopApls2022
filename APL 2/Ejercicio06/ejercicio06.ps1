@@ -1,9 +1,9 @@
 # =========================== Encabezado =======================
 
-# Nombre del script: Ejercicio06.sh
+# Nombre del script: Ejercicio06.ps1
 # Número de ejercicio: 6
 # Trabajo Práctico: 2
-# Entrega: Primera entrega
+# Entrega: Cuarta entrega
 
 # ==============================================================
 

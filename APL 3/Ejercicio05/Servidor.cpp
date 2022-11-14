@@ -41,7 +41,7 @@ sem_t* semaforos[2];
 using namespace std;
 //necesitamos un identificador para la memoria compartida para que los diferentes procesos que vayan a utilizarla tengan una manera de referenciarla
 #define MemPid "pidServidorSocket"
-
+#define SERV_HOST_ADDR "127.0.0.1"     /* IP, only IPV4 support  */
 
 string realizar_Actividades(const char[]);
 /***********************************Semaforos**********************************/
@@ -138,10 +138,14 @@ int main(int argc, char *argv[]){
     memset(&serverConfig,'0',sizeof(serverConfig));
 
     serverConfig.sin_family = AF_INET; //IPV4: 127.0.0.1
-    serverConfig.sin_addr.s_addr = htonl(INADDR_ANY);
+    //Direcciones desde la cuales estamos esperando conexiones.
+    //serverConfig.sin_addr.s_addr = htonl(INADDR_ANY);
+    serverConfig.sin_addr.s_addr = inet_addr(SERV_HOST_ADDR); 
+    //le pasamos el puerto
     serverConfig.sin_port = htons(5000);
 
     int socketEscucha = socket(AF_INET,SOCK_STREAM,0);
+    //nos va a linkear/relacionar nuestro socket con nuestra configración.
     bind(socketEscucha,(struct sockaddr *)&serverConfig,sizeof(serverConfig));
 
     listen(socketEscucha,3); // hasta 3 clientes pueden estar encolados
@@ -152,18 +156,16 @@ int main(int argc, char *argv[]){
         char mensajeCliente[2000];
 
         int bytesRecibidos = 0;
-        while((bytesRecibidos = read(socketComunicacion,mensajeCliente,sizeof(mensajeCliente) - 1))){
-             
+        bytesRecibidos = read(socketComunicacion,mensajeCliente,sizeof(mensajeCliente));
+        if(bytesRecibidos > 0){   
+            string sendBuff = realizar_Actividades(mensajeCliente);
+            //Escribimos en el socket de comunicacion que vamos a mandar y el tamaño que tiene lo que vamos a mandar
+            char aux[2000];
+            strcpy(aux,sendBuff.c_str());
+            //char cad[] = "Hola! Soy el proceso servidor";
+            write(socketComunicacion,aux,strlen(aux));
+            close(socketComunicacion);
         }
-        
-        string sendBuff = realizar_Actividades(mensajeCliente);
-
-
-        //Escibrimos en el socket de comunicacion que vamos a mandar y el tamaño que tiene lo que vamos a mandar
-        char aux[200];
-        strcpy(aux,sendBuff.c_str());
-        write(socketComunicacion,aux,strlen(aux));
-        close(socketComunicacion);
     }
    exit(EXIT_SUCCESS);
 }

@@ -29,12 +29,14 @@ typedef struct {
     char estado[3]; // CA (castrado) o SC (sin castrar) 
 }gato;
 
+#define SERV_HOST_ADDR "127.0.0.1"     /* IP, only IPV4 support  */
+
 using namespace std;
 
 bool Ayuda(const char *);
 int leer_rescatados(const char[]);
 bool validar_parametro(const char[]);
-string enviarMensaje(const char [],char[]);
+string enviarMensaje(const char []);
 
 int main(int argc, char *argv[]){
     if(argc == 1){
@@ -75,7 +77,7 @@ int main(int argc, char *argv[]){
             strcat(mensaje,argv[4]);
             strcat(mensaje,"|");
             strcat(mensaje,argv[5]);
-            string respuesta = enviarMensaje(mensaje,argv[0]);
+            string respuesta = enviarMensaje(mensaje);
             //Lógica de respuesta al socket, mi mensaje
             if(strcmp(respuesta.c_str(),"Operacion exitosa") != 0)
                 cout << respuesta << endl;
@@ -96,7 +98,7 @@ int main(int argc, char *argv[]){
             strcat(mensaje,"|");
             strcat(mensaje,argv[2]);
 
-            string respuesta = enviarMensaje(mensaje,argv[0]);
+            string respuesta = enviarMensaje(mensaje);
             //logica socket respuesta
             if(strcmp(respuesta.c_str(),"Operacion exitosa") != 0)
                 cout << respuesta << endl;
@@ -118,7 +120,7 @@ int main(int argc, char *argv[]){
             strcat(mensaje,argv[1]);
             strcat(mensaje,"|");
             strcat(mensaje,argv[2]);
-            string respuesta = enviarMensaje(mensaje,argv[0]);            
+            string respuesta = enviarMensaje(mensaje);            
             //logica socket respuesta
             if(strcmp(respuesta.c_str(),"Error, el gato no se encuentra registrado") != 0){
                 gato *g = (gato*)malloc(sizeof(gato));
@@ -159,7 +161,7 @@ int main(int argc, char *argv[]){
                 strcat(mensaje,argv[1]);
                 strcat(mensaje,"|");    //para que me lea al menos la palabra consulta.
                 strcat(mensaje,"rescatados.txt");
-                string respuesta = enviarMensaje(mensaje,argv[0]);
+                string respuesta = enviarMensaje(mensaje);
                 //logica respuesta socket
                 
                 if(strcmp(respuesta.c_str(),"No se hallan gatos rescatados") != 0)
@@ -224,32 +226,40 @@ bool validar_parametro(const char nombre[]){
     return true;
 }
 
-string enviarMensaje(const char mensajeCliente[],char script[]){
-    const char IPADDR[] = "172.23.0.1";
+string enviarMensaje(const char mensajeCliente[]){
     struct sockaddr_in socketConfig;
     memset(&socketConfig,'0',sizeof(socketConfig));
     
     socketConfig.sin_family = AF_INET;
+    //socketConfig.sin_addr.s_addr = htonl(INADDR_ANY);
     socketConfig.sin_port = htons(5000);
-    inet_pton(AF_INET,IPADDR, &socketConfig.sin_addr);
+    
+    //char *ip;
+    //ip = inet_ntoa(socketConfig.sin_addr);
 
+    inet_pton(AF_INET, SERV_HOST_ADDR, &socketConfig.sin_addr);
+    
     int socketComunicacion = socket(AF_INET,SOCK_STREAM,0);
 
     int resultadoConexion = connect(socketComunicacion,(struct sockaddr *)&socketConfig,sizeof(socketConfig));
-
+    cout << "243" << endl;
     if(resultadoConexion < 0){
         cout << "Error en la conexión" << endl;
         exit(EXIT_FAILURE);
     }
-
+    cout << "248" << endl;
+    puts(mensajeCliente);
     write(socketComunicacion,mensajeCliente,strlen(mensajeCliente));
     char buffer[2000];
     int bytesRecibidos = 0;
-    while((bytesRecibidos = read(socketComunicacion,buffer,sizeof(buffer) - 1))){
-        buffer[bytesRecibidos] = 0;
+    cout << "252" << endl;
+    while((bytesRecibidos = read(socketComunicacion,buffer,sizeof(buffer) - 1)) < 1){
+        cout << "257" << endl;
     }
-
-    close(socketComunicacion);
+    cout << "256" << endl;
     string bu(buffer);
+    puts(buffer);
+    cout << bu << endl;
+    close(socketComunicacion);
     return bu;
 }
