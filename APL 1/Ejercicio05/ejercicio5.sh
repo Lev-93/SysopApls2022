@@ -111,7 +111,7 @@ calcularMat()
 then
 	(( datos[1] = datos[1] + 1))
 fi
-			if test "$final" == "" && (test $recu -ge 7) && ( (test "$parcial2" -ge "7" || test "$parcial1" -ge "7") || (test "$parcial2" -ge "7" && test "$parcial1" -ge "7"))
+			if (test "$final" == "") && (((test $recu -ge 7) || ( (test "$parcial2" -ge "7" || test "$parcial1" -ge "7"))) || (test "$parcial2" -ge "7" && test "$parcial1" -ge "7"))
 			then
 				(( datos[3] = datos[3] +1 ))
 			fi
