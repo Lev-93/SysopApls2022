@@ -1,3 +1,0 @@
-ALTA|Snowball|Siames|M|CA
-ALTA|Tortu|Siames|M|CA
-BAJA|Tortugon|Siames|M|CA
