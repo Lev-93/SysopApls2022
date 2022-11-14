@@ -134,6 +134,9 @@ int main(int argc, char *argv[]){
     //si esta la señal Ctrl+c la ignora.
     signal(SIGINT,SIG_IGN);
 
+    ofstream archivo;
+
+
     struct sockaddr_in serverConfig;
     memset(&serverConfig,'0',sizeof(serverConfig));
 
@@ -158,12 +161,12 @@ int main(int argc, char *argv[]){
         int bytesRecibidos = 0;
         bytesRecibidos = read(socketComunicacion,mensajeCliente,sizeof(mensajeCliente));
         if(bytesRecibidos > 0){   
-            //string sendBuff = realizar_Actividades(mensajeCliente);
+            string sendBuff = realizar_Actividades(mensajeCliente);
             //Escribimos en el socket de comunicacion que vamos a mandar y el tamaño que tiene lo que vamos a mandar
-            //char aux[2000];
-            //strcpy(aux,sendBuff.c_str());
-            char cad[] = "Hola! Soy el proceso servidor";
-            write(socketComunicacion,cad,strlen(cad));
+            char aux[2000];
+            strcpy(aux,sendBuff.c_str());
+            //char cad[] = "Hola! Soy el proceso servidor";
+            write(socketComunicacion,aux,strlen(aux));
             close(socketComunicacion);
         }
     }
@@ -207,7 +210,7 @@ string realizar_Actividades(const char mensaje[]){
             // La accion a realizar es consultar en este caso.
             char *ptr_nombre = strtok(NULL,"|");
             if(strcmp(ptr_nombre,"rescatados.txt") == 0){
-                int r = obtener_Rescatados("rescatados.txt");
+                int r = obtener_Rescatados(ptr_nombre);
                 if(r == 0)
                     return "No se hallan gatos rescatados";
                 else
@@ -285,7 +288,7 @@ int consultarArchivo(const char nombre[20]){
     char *pch;
     archivo.open("gatos.txt",ios::in);
     if(archivo.fail()){
-        cout << "no se pudo abrir el archivo" << endl;
+        cout << "no se pudo abrir el archivo para lectura" << endl;
         return -2;
     }
     int cont = 0;
@@ -311,12 +314,12 @@ int consultarArchivo(const char nombre[20]){
 
 int escribirArchivo(gato *g){
     if(consultarArchivo(g->nombre) >= 0){
-        return -1;  //si ya esta, se debe escribir el mensaje en memoria->notialta que ya esta el nombre usado y este es único.
+        return -1;
     }
     ofstream archivo;
     archivo.open("gatos.txt",ios::app);
     if(archivo.fail()){
-        cout << "no se pudo abrir el archivo" << endl;
+        cout << "no se pudo abrir el archivo en modo escritura" << endl;
         exit(1);
     }
     string tmp_situacion(g->situacion);
