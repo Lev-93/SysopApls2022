@@ -320,7 +320,6 @@ bool Ayuda(const char *cad)
 }
 
 int consultarArchivo(const char nombre[20]){
-    gato g;
     ifstream archivo;
     string texto;
     char gatito[60];
@@ -332,8 +331,7 @@ int consultarArchivo(const char nombre[20]){
     }
     int cont = 0;
 
-    while(!archivo.eof()){
-        getline(archivo,texto);
+    while(getline(archivo,texto)){
         strcpy(gatito,texto.c_str());
         if(strcmp(gatito,"") == 0)
             break;
@@ -391,8 +389,7 @@ int modificar_Archivo(const char nombre[20]){
         exit(1);
     }
     int cont = 0;
-    while(!archivo.eof()){
-        getline(archivo,texto);
+    while(getline(archivo,texto)){
         strcpy(gatito,texto.c_str());
         if(strcmp(gatito,"") == 0)
             break;
@@ -438,18 +435,15 @@ gato* devolver_gato(char nombre[20]){
     string texto;
     char gatito[60];
     char *pch;
-    char situacion[4];
+    char situacion[5];
     archivo.open("gatos.txt",ios::in);
     if(archivo.fail()){
         cout << "no se pudo abrir el archivo" << endl;
         exit(1);
     }
 
-    while(!archivo.eof()){
-        getline(archivo,texto);
+    while(getline(archivo,texto)){
         strcpy(gatito,texto.c_str());
-        if(strcmp(gatito,"") == 0)
-            break;
         //aqui obtenemos la situacion del gato
         pch = strtok(gatito, "|");
         //aqui obtenemos el nombre del gato
@@ -489,11 +483,8 @@ int obtener_Rescatados(const char *path){
         archivo1.close();
         return -2;
     }
-    while(!archivo1.eof()){
-        getline(archivo1,texto);
+    while(getline(archivo1,texto)){
         strcpy(gatito,texto.c_str());
-        if(strcmp(gatito,"") == 0)      //Probar con strlen
-            break;
         pch = strtok(gatito, "|");
         if(strcmp(pch,"ALTA") == 0) {     //consideramos a los gatos en situación de ALTA como rescatados.
             archivo2 << texto << endl;
