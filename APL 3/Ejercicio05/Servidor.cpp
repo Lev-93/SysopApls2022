@@ -32,6 +32,11 @@ typedef struct {
     char estado[3]; // CA (castrado) o SC (sin castrar) 
 }gato;
 
+typedef struct {
+    int pidServ;
+    int Socket_Escucha;
+}dato;
+
 sem_t* semaforos[2];
 /*
     0 - Servidor (solo puede haber 1) se inicia en 1 y rapidamente se ocupa por el primer demonio. se liberara cuando el servidor demonio sea detenido
@@ -58,7 +63,7 @@ bool Ayuda(const char *);
 int consultarArchivo(const char[20]);
 int escribirArchivo(gato*);
 int modificar_Archivo(const char[20]);
-gato* devolver_gato(char[20]);
+gato* devolver_gato(const char[20]);
 int obtener_Rescatados(const char*);
 /***********************************Archivos**********************************/
 
@@ -120,23 +125,17 @@ int main(int argc, char *argv[]){
     sem_wait(semaforos[0]);
     /*************************************************************************************************/
 
-    //creamos una memoria compartida especial donde guardaremos el pid de otro proceso que nos servira para matar el servidor mediante la señal sigusR1
-    int idAux = shm_open(MemPid, O_CREAT | O_RDWR, 0600);
-    ftruncate(idAux,sizeof(int));
-    int *pidA = (int*)mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED, idAux,0);
-    close(idAux);
-    *pidA = getpid();
-    munmap(pidA,sizeof(int));
-    //
-
     //Manejo de señales, cuando se reciban algunas de las dos señales se ejecutara su correspondiente función.
     signal(SIGUSR1, liberar_Recursos);
     //si esta la señal Ctrl+c la ignora.
     signal(SIGINT,SIG_IGN);
 
     ofstream archivo;
-
-
+    archivo.open("gatos.txt",ios::out);
+    if(archivo.fail())
+        exit(EXIT_FAILURE);
+    archivo << "Situacion|Nombre|Raza|Sexo|Estado";
+    archivo.close();
     struct sockaddr_in serverConfig;
     memset(&serverConfig,'0',sizeof(serverConfig));
 
@@ -153,20 +152,32 @@ int main(int argc, char *argv[]){
 
     listen(socketEscucha,3); // hasta 3 clientes pueden estar encolados
 
+    //creamos una memoria compartida especial donde guardaremos el pid del servidorSocket y el socket de escucha.
+    int idAux = shm_open(MemPid, O_CREAT | O_RDWR, 0600);
+    ftruncate(idAux,sizeof(dato));
+    dato *pidA = (dato*)mmap(NULL, sizeof(dato), PROT_READ | PROT_WRITE, MAP_SHARED, idAux,0);
+    close(idAux);
+    pidA->pidServ = getpid();
+    pidA->Socket_Escucha = socketEscucha;
+    munmap(pidA,sizeof(int));
+    //
     while (1) {
         int socketComunicacion = accept(socketEscucha, (struct sockaddr *) NULL, NULL);
-        
         char mensajeCliente[2000];
-
+        bzero(mensajeCliente,2000);
         int bytesRecibidos = 0;
-        bytesRecibidos = read(socketComunicacion,mensajeCliente,sizeof(mensajeCliente));
+        bytesRecibidos = read(socketComunicacion,mensajeCliente,sizeof(mensajeCliente) - 1);
         if(bytesRecibidos > 0){   
             string sendBuff = realizar_Actividades(mensajeCliente);
             //Escribimos en el socket de comunicacion que vamos a mandar y el tamaño que tiene lo que vamos a mandar
-            char aux[2000];
-            strcpy(aux,sendBuff.c_str());
+            char respuestaServidor[2000];
+            bzero(respuestaServidor,2000);
+            strcpy(respuestaServidor,"");
+            strcpy(respuestaServidor,sendBuff.c_str());
             //char cad[] = "Hola! Soy el proceso servidor";
-            write(socketComunicacion,aux,strlen(aux));
+            //strcpy(cad,"");
+            //strcpy(cad,mensajeCliente);
+            write(socketComunicacion,respuestaServidor,strlen(respuestaServidor));
             close(socketComunicacion);
         }
     }
@@ -194,6 +205,8 @@ string realizar_Actividades(const char mensaje[]){
         free(g);
         if(i == -1)
             return "Error, el gato ya se encuentra registrado";
+        if(i == -2)
+            return "Error, el archivo no pudo abrirse en modo escritura";
         return "Operacion exitosa";
     }
     else{
@@ -207,31 +220,36 @@ string realizar_Actividades(const char mensaje[]){
             return "Operacion exitosa";
         }
         else{
-            // La accion a realizar es consultar en este caso.
-            char *ptr_nombre = strtok(NULL,"|");
-            if(strcmp(ptr_nombre,"rescatados.txt") == 0){
-                int r = obtener_Rescatados(ptr_nombre);
-                if(r == 0)
-                    return "No se hallan gatos rescatados";
-                else
-                    return "Operacion exitosa";
-            }
-            else{
-                gato *g = devolver_gato(ptr_nombre);
-                if(g == NULL)
-                    return "Error, el gato no se encuentra registrado";
-                char respuesta[200];
-                strcat(respuesta,g->situacion);
-                strcat(respuesta,"|");
-                strcat(respuesta,g->nombre);
-                strcat(respuesta,"|");
-                strcat(respuesta,g->raza);
-                strcat(respuesta,"|");
-                strcat(respuesta,g->sexo);
-                strcat(respuesta,"|");
-                strcat(respuesta,g->estado);
-                free(g);
-                return respuesta;
+            if(strcmp(p,"CONSULTA") == 0){
+                // La accion a realizar es consultar en este caso.
+                char *ptr_nombre = strtok(NULL,"|");
+                if(strcmp(ptr_nombre,"rescatados.txt") == 0){
+                    int r = obtener_Rescatados(ptr_nombre);
+                    if(r == 0)
+                        return "No se hallan gatos rescatados";
+                    else
+                        return "Operacion exitosa";
+                }
+                else{
+                    gato *g = devolver_gato(ptr_nombre);
+                    if(g == NULL)
+                        return "Error, el gato no se encuentra registrado";
+                    char respuesta[2000];
+                    bzero(respuesta,2000);
+                    strcat(respuesta,g->situacion);
+                    strcat(respuesta,"|");
+                    strcat(respuesta,g->nombre);
+                    strcat(respuesta,"|");
+                    strcat(respuesta,g->raza);
+                    strcat(respuesta,"|");
+                    strcat(respuesta,g->sexo);
+                    strcat(respuesta,"|");
+                    strcat(respuesta,g->estado);
+                    //strcat(respuesta,"\0");
+                    free(g);
+                    string res(respuesta);
+                    return res;
+                }
             }
         }
     }
@@ -259,6 +277,14 @@ void inicializarSemaforos(){
 
 void liberar_Recursos(int signum){
     eliminar_Sem();
+    //creamos una memoria compartida especial donde guardaremos el pid del servidorSocket y el socket de escucha.
+    int idAux = shm_open(MemPid, O_CREAT | O_RDWR, 0600);
+    dato *pidA = (dato*)mmap(NULL, sizeof(dato), PROT_READ | PROT_WRITE, MAP_SHARED, idAux,0);
+    close(idAux);
+    shutdown(pidA->Socket_Escucha,SHUT_RDWR);
+    munmap(pidA,sizeof(int));
+    shm_unlink("pidServidorSocket");
+    //
     remove("gatos.txt");
     remove("salida.txt");
     exit(EXIT_SUCCESS);
@@ -280,24 +306,18 @@ bool Ayuda(const char *cad)
     return false;
 }
 
-int consultarArchivo(const char nombre[20]){
-    gato g;
-    ifstream archivo;
-    string texto;
-    char gatito[60];
-    char *pch;
-    archivo.open("gatos.txt",ios::in);
-    if(archivo.fail()){
-        cout << "no se pudo abrir el archivo para lectura" << endl;
+int consultarArchivo(const char nombre[21]){
+    ifstream archivo("gatos.txt");
+    if(!archivo.is_open()){
         return -2;
     }
-    int cont = 0;
-
-    while(!archivo.eof()){
-        getline(archivo,texto);
+    string texto;
+    char gatito[100];
+    char *pch;
+    int cont = 1;
+    getline(archivo,texto);
+    while(getline(archivo,texto)){
         strcpy(gatito,texto.c_str());
-        if(strcmp(gatito,"") == 0)
-            break;
         //aqui obtenemos la situacion del gato
         pch = strtok(gatito, "|");
         //aqui obtenemos el nombre del gato
@@ -319,44 +339,43 @@ int escribirArchivo(gato *g){
     ofstream archivo;
     archivo.open("gatos.txt",ios::app);
     if(archivo.fail()){
-        cout << "no se pudo abrir el archivo en modo escritura" << endl;
-        exit(1);
+        return -2;
     }
     string tmp_situacion(g->situacion);
     string tmp_nombre(g->nombre);
     string tmp_raza(g->raza);
     string tmp_sexo(g->sexo);
     string tmp_estado(g->estado);
-    archivo << tmp_situacion + "|" + tmp_nombre + "|" + tmp_raza + "|" + tmp_sexo + "|" + tmp_estado << endl;
+    archivo << "\n" + tmp_situacion + "|" + tmp_nombre + "|" + tmp_raza + "|" + tmp_sexo + "|" + tmp_estado;
     archivo.close();
     return 1;
 }
 
-int modificar_Archivo(const char nombre[20]){
+int modificar_Archivo(const char nombre[21]){
     int pos = consultarArchivo(nombre);
     string texto;
     char gatito[60];
     char *pch;
-    if(pos < 0){
-        return -1;  //si no existe, se debe escribir el mensaje en memoria->notibaja que el nombre del gato no se encuentra registrado.
+    if(pos == -1 || pos == -2){
+        return -1;
     }
     ifstream archivo;
     archivo.open("gatos.txt",ios::in);
-    if(archivo.fail())
-        exit(1);
+    if(archivo.fail()){
+        return -1;
+    }
     //cambiamos el ALTA, por BAJA en dicho gato
     ofstream auxiliar;
     auxiliar.open("auxiliar.txt",ios::out);
     if(auxiliar.fail()){
         archivo.close();
-        exit(1);
+        return -1;
     }
-    int cont = 0;
-    while(!archivo.eof()){
-        getline(archivo,texto);
+    int cont = 1;
+    getline(archivo,texto);
+    auxiliar << texto;
+    while(getline(archivo,texto)){
         strcpy(gatito,texto.c_str());
-        if(strcmp(gatito,"") == 0)
-            break;
         //aqui obtenemos la situacion del gato
         if(pos == cont){    // es el gato a cambiar la situacion de ALTA a BAJA
             char *situacionvieja = strtok(gatito,"|");
@@ -375,11 +394,11 @@ int modificar_Archivo(const char nombre[20]){
                 string tmp_raza(raza);
                 string tmp_sexo(sexo);
                 string tmp_estado(estado);
-                auxiliar << "BAJA|" + tmp_nombregato+ "|" + tmp_raza + "|" + tmp_sexo + "|" + tmp_estado << endl;
+                auxiliar << "\nBAJA|" + tmp_nombregato+ "|" + tmp_raza + "|" + tmp_sexo + "|" + tmp_estado;
             }
         }
         else{
-            auxiliar << texto << endl;
+            auxiliar << "\n" + texto;
         }
         pch = strtok(gatito, "|");
         //aqui obtenemos el nombre del gato
@@ -393,28 +412,24 @@ int modificar_Archivo(const char nombre[20]){
     return 0;
 }
 
-gato* devolver_gato(char nombre[20]){
+gato* devolver_gato(const char nombre[21]){
     gato *g = (gato*) malloc(sizeof(gato));
     ifstream archivo;
     string texto;
-    char gatito[60];
+    char gatito[100];
     char *pch;
-    char situacion[4];
+    char situacion[5];
     archivo.open("gatos.txt",ios::in);
     if(archivo.fail()){
-        cout << "no se pudo abrir el archivo" << endl;
-        exit(1);
+        return NULL;
     }
-
-    while(!archivo.eof()){
-        getline(archivo,texto);
+    getline(archivo,texto);
+    while(getline(archivo,texto)){
         strcpy(gatito,texto.c_str());
-        if(strcmp(gatito,"") == 0)
-            break;
         //aqui obtenemos la situacion del gato
         pch = strtok(gatito, "|");
-        //aqui obtenemos el nombre del gato
         strcpy(situacion,pch);
+        //aqui obtenemos el nombre del gato
         pch = strtok(NULL, "|");
         if(strcmp(nombre,pch) == 0){
             strcpy(g->situacion,situacion);
@@ -429,9 +444,8 @@ gato* devolver_gato(char nombre[20]){
             return g;
         }
     }
-
+    free(g);
     archivo.close();
-
     return NULL;
 }
 
@@ -451,8 +465,7 @@ int obtener_Rescatados(const char *path){
         return -2;
     }
     int cont = 0;
-    while(!archivo1.eof()){
-        getline(archivo1,texto);
+    while(getline(archivo1,texto)){
         strcpy(gatito,texto.c_str());
         if(strcmp(gatito,"") == 0)
             break;

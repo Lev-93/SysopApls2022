@@ -1,0 +1,3 @@
+Situacion|Nombre|Raza|Sexo|Estado
+BAJA|Snowball|siames|M|CA
+BAJA|Mandarina|siames|H|SC

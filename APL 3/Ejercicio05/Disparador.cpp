@@ -14,13 +14,18 @@
 #include <semaphore.h>
 using namespace std;
 
+typedef struct {
+    int pidServ;
+    int Socket_Escucha;
+}dato;
+
 #define MemPid "pidServidorSocket"
 
 int main(){
     int idAux = shm_open(MemPid, 0100 | 02, 0600);
-    int *pidA = (int*)mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED, idAux,0);
+    dato *pidA = (dato*)mmap(NULL, sizeof(dato), PROT_READ | PROT_WRITE, MAP_SHARED, idAux,0);
     close(idAux);
-    kill(*pidA,SIGUSR1);
-    munmap(pidA,sizeof(int));
-    shm_unlink("pidServidorSocket");
+    int pid = pidA->pidServ;
+    munmap(pidA,sizeof(dato));
+    kill(pid,SIGUSR1);
 }

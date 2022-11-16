@@ -43,7 +43,7 @@ typedef struct {
 int consultarArchivo(const char[20]);
 int escribirArchivo(gato*);
 int modificar_Archivo(const char[20]);
-gato* devolver_gato(char[20]);
+gato* devolver_gato(const char[20]);
 int obtener_Rescatados(const char*);
 
 acciones* accion;
@@ -51,24 +51,54 @@ acciones* accion;
 using namespace std;
 
 int main(){
-    int res = modificar_Archivo("Peluzo");
-    cout << res << endl;
+    string cadena = "BAJA|Mandarina";
+    //gato *g = (gato*)malloc(sizeof(gato));
+    //if(g == NULL){
+    //    exit(EXIT_FAILURE);
+    //}
+    //strcpy(g->situacion,"ALTA");
+    //strcpy(g->nombre,"Snowball");
+    //strcpy(g->raza,"siames");
+    //strcpy(g->sexo,"M");
+    //strcpy(g->estado,"CA");
+    //cout << "61" << endl;
+    //int res = escribirArchivo(g);
+    //printf("%d\n",res);
+    //strcpy(g->situacion,"ALTA");
+    //strcpy(g->nombre,"Mandarina");
+    //strcpy(g->raza,"siames");
+    //strcpy(g->sexo,"H");
+    //strcpy(g->estado,"SC");
+    //cout << "69" << endl;
+    //res = escribirArchivo(g);
+    //printf("%d\n",res);
+    //free(g);
+    char gatito[60];
+    strcpy(gatito,cadena.c_str());
+    char *ptr;
+    ptr = strtok(gatito,"|");
+    puts(ptr);
+    ptr = strtok(NULL,"|");
+    puts(ptr);
+    int res = modificar_Archivo(ptr);
+    printf("%d\n",res);
+    //g = devolver_gato("Mandarina");
+    //puts(g->nombre);
+    //puts(g->raza);
+    //free(g);
 } 
 
-int consultarArchivo(const char nombre[20]){
-    gato g;
-    ifstream archivo;
-    string texto;
-    char gatito[60];
-    char *pch;
-    archivo.open("gatos.txt",ios::in);
-    if(archivo.fail()){
+int consultarArchivo(const char nombre[21]){
+    ifstream archivo("gatos.txt");
+    if(!archivo.is_open()){
         return -2;
     }
-    int cont = 0;
-
-    while(!archivo.eof()){
-        getline(archivo,texto);
+    string texto;
+    char gatito[100];
+    char *pch;
+    int cont = 1;
+    getline(archivo,texto);
+    while(getline(archivo,texto)){
         strcpy(gatito,texto.c_str());
         //aqui obtenemos la situacion del gato
         pch = strtok(gatito, "|");
@@ -86,49 +116,47 @@ int consultarArchivo(const char nombre[20]){
 
 int escribirArchivo(gato *g){
     if(consultarArchivo(g->nombre) >= 0){
-        return -1;  //si ya esta, se debe escribir el mensaje en memoria->notialta que ya esta el nombre usado y este es único.
+        return -1;
     }
     ofstream archivo;
     archivo.open("gatos.txt",ios::app);
     if(archivo.fail()){
-        cout << "no se pudo abrir el archivo" << endl;
-        exit(1);
+        return -2;
     }
     string tmp_situacion(g->situacion);
     string tmp_nombre(g->nombre);
     string tmp_raza(g->raza);
     string tmp_sexo(g->sexo);
     string tmp_estado(g->estado);
-    archivo << tmp_situacion + "|" + tmp_nombre + "|" + tmp_raza + "|" + tmp_sexo + "|" + tmp_estado;
+    archivo << "\n" + tmp_situacion + "|" + tmp_nombre + "|" + tmp_raza + "|" + tmp_sexo + "|" + tmp_estado;
     archivo.close();
     return 1;
 }
 
-int modificar_Archivo(const char nombre[20]){
+int modificar_Archivo(const char nombre[21]){
     int pos = consultarArchivo(nombre);
     string texto;
     char gatito[60];
     char *pch;
-    if(pos < 0){
-        return -1;  //si no existe, se debe escribir el mensaje en memoria->notibaja que el nombre del gato no se encuentra registrado.
+    if(pos == -1 || pos == -2){
+        return -1;
     }
     ifstream archivo;
     archivo.open("gatos.txt",ios::in);
     if(archivo.fail()){
-        cout << "no se pudo abrir el archivo" << endl;
-        exit(1);
+        return -1;
     }
     //cambiamos el ALTA, por BAJA en dicho gato
     ofstream auxiliar;
     auxiliar.open("auxiliar.txt",ios::out);
     if(auxiliar.fail()){
-        cout << "no se pudo abrir el archivo auxiliar" << endl;
         archivo.close();
-        exit(1);
+        return -1;
     }
-    int cont = 0;
-    while(!archivo.eof()){
-        getline(archivo,texto);
+    int cont = 1;
+    getline(archivo,texto);
+    auxiliar << texto;
+    while(getline(archivo,texto)){
         strcpy(gatito,texto.c_str());
         //aqui obtenemos la situacion del gato
         if(pos == cont){    // es el gato a cambiar la situacion de ALTA a BAJA
@@ -148,11 +176,11 @@ int modificar_Archivo(const char nombre[20]){
                 string tmp_raza(raza);
                 string tmp_sexo(sexo);
                 string tmp_estado(estado);
-                auxiliar << "BAJA|" + tmp_nombregato+ "|" + tmp_raza + "|" + tmp_sexo + "|" + tmp_estado;
+                auxiliar << "\nBAJA|" + tmp_nombregato+ "|" + tmp_raza + "|" + tmp_sexo + "|" + tmp_estado;
             }
         }
         else{
-            auxiliar << texto;
+            auxiliar << "\n" + texto;
         }
         pch = strtok(gatito, "|");
         //aqui obtenemos el nombre del gato
@@ -166,7 +194,7 @@ int modificar_Archivo(const char nombre[20]){
     return 0;
 }
 
-gato* devolver_gato(char nombre[20]){
+gato* devolver_gato(const char nombre[20]){
     gato *g = (gato*) malloc(sizeof(gato));
     ifstream archivo;
     string texto;
@@ -179,8 +207,7 @@ gato* devolver_gato(char nombre[20]){
         exit(1);
     }
 
-    while(!archivo.eof()){
-        getline(archivo,texto);
+    while(getline(archivo,texto)){
         strcpy(gatito,texto.c_str());
 
         //aqui obtenemos la situacion del gato

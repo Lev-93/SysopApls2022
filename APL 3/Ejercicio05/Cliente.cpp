@@ -83,7 +83,7 @@ int main(int argc, char *argv[]){
                 cout << respuesta << endl;
         }
         else{
-            cout << "Error, cantidad de parametros erronea junto a la acción alta.";
+            cout << "Error, cantidad de parametros erronea junto a la acción alta." << endl;
             exit(EXIT_FAILURE);
         }
     }
@@ -104,7 +104,7 @@ int main(int argc, char *argv[]){
                 cout << respuesta << endl;
         }
         else{
-            cout << "Error, cantidad de parametros erronea junto a la acción baja";
+            cout << "Error, cantidad de parametros erronea junto a la acción baja" << endl;
             exit(EXIT_FAILURE);
         }
     }
@@ -242,24 +242,17 @@ string enviarMensaje(const char mensajeCliente[]){
     int socketComunicacion = socket(AF_INET,SOCK_STREAM,0);
 
     int resultadoConexion = connect(socketComunicacion,(struct sockaddr *)&socketConfig,sizeof(socketConfig));
-    cout << "243" << endl;
     if(resultadoConexion < 0){
         cout << "Error en la conexión" << endl;
         exit(EXIT_FAILURE);
     }
-    cout << "248" << endl;
-    puts(mensajeCliente);
     write(socketComunicacion,mensajeCliente,strlen(mensajeCliente));
     char buffer[2000];
+    bzero(buffer,2000);
     int bytesRecibidos = 0;
-    cout << "252" << endl;
     while((bytesRecibidos = read(socketComunicacion,buffer,sizeof(buffer) - 1)) < 1){
-        cout << "257" << endl;
     }
-    cout << "259" << endl;
     string bu(buffer);
-    puts(buffer);
-    cout << bu << endl;
     close(socketComunicacion);
     return bu;
 }
