@@ -159,7 +159,7 @@ int main(int argc, char *argv[]){
     close(idAux);
     pidA->pidServ = getpid();
     pidA->Socket_Escucha = socketEscucha;
-    munmap(pidA,sizeof(int));
+    munmap(pidA,sizeof(dato));
     //
     while (1) {
         int socketComunicacion = accept(socketEscucha, (struct sockaddr *) NULL, NULL);
@@ -282,7 +282,7 @@ void liberar_Recursos(int signum){
     dato *pidA = (dato*)mmap(NULL, sizeof(dato), PROT_READ | PROT_WRITE, MAP_SHARED, idAux,0);
     close(idAux);
     shutdown(pidA->Socket_Escucha,SHUT_RDWR);
-    munmap(pidA,sizeof(int));
+    munmap(pidA,sizeof(dato));
     shm_unlink("pidServidorSocket");
     //
     remove("gatos.txt");
