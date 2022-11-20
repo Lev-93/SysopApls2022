@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string>
+#include <semaphore.h>
 
 #define SEND_FIFO "FIFO2"
 #define RECEIVE_FIFO "FIFO1"
@@ -19,7 +20,10 @@ void swap(char *, char *);
 char* reverse(char*, int, int);
 char* itoa(int, char*, int);
 void comunicacion_fifos2(FILE*);
+void inicializarSemaforo();
 void ayuda();
+
+sem_t* semaforo;
 
 using namespace std;
  
@@ -108,8 +112,11 @@ void comunicacion_fifos2(FILE * arch)
 	
 	else if (pid == 0) // recibir información
 	{
+		inicializarSemaforo();
+		sem_wait(semaforo);
         mkfifo(SEND_FIFO, 0666);
 	    mkfifo(RECEIVE_FIFO, 0666);
+
 		while(1)
 		{
             ifstream fifo1(RECEIVE_FIFO);
@@ -135,8 +142,7 @@ void comunicacion_fifos2(FILE * arch)
 						string tmp_nombreProd(p);
 						p = strtok(NULL,";");
 						string tmp_precio(p);
-						string respuesta = tmp_id + " " + tmp_nombreProd + " " + tmp_precio;
-                        fifo2 << respuesta << endl;
+                        fifo2 << tmp_id + " " + tmp_nombreProd + " $" + tmp_precio + "\n" << ends;
 					}
 					primerPase++;
 				}
@@ -171,8 +177,7 @@ void comunicacion_fifos2(FILE * arch)
 							p = strtok(NULL,";");
 							strcpy(res,p);
 							string tmp_costo(res);
-							string respuesta = tmp_id + " " + tmp_nombreProd + " " + tmp_costo;
-                        	fifo2 << respuesta << endl;
+                        	fifo2 << tmp_id + " " + tmp_nombreProd + " $" + tmp_costo + "\n" << ends;
                         }
 					}
 					primerPase++;
@@ -226,7 +231,7 @@ void comunicacion_fifos2(FILE * arch)
 					primerPase++;
 				}
 				string aux(mandar);
-                fifo2 << "$" + aux << ends;
+                fifo2 << "$" + aux << endl;
                 //write(send_fd, "$", 1);
                 //write(send_fd, mandar, strlen(mandar));
 				//write(send_fd, "\n", 1);
@@ -288,6 +293,8 @@ void comunicacion_fifos2(FILE * arch)
 			{
 				fclose(arch);
                 system("clear");
+				sem_close(semaforo);
+				sem_unlink("servidorFIFO");
 				unlink(SEND_FIFO);
 				unlink(RECEIVE_FIFO);
 				exit(EXIT_SUCCESS);
@@ -297,6 +304,16 @@ void comunicacion_fifos2(FILE * arch)
 	}
 	else if (pid> 0)
 		exit(EXIT_SUCCESS);
+}
+
+void inicializarSemaforo(){
+    semaforo = sem_open("servidorFIFO",O_CREAT,0600,1);
+    
+    // Si dicho semaforo vale 0 en ese momento significa que ya hay otra instancia de semaforo ejecutando por lo que cerramos el proceso.
+    int valorSemServi = 85;
+    sem_getvalue(semaforo,&valorSemServi);
+    if(valorSemServi == 0)
+        exit(EXIT_FAILURE);
 }
 
 void ayuda()

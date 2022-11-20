@@ -10,12 +10,16 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string>
+#include <semaphore.h>
 
 #define SEND_FIFO "FIFO1"
 #define RECEIVE_FIFO "FIFO2"
 
 void ayuda();
 void comunicacion_fifos2();
+void inicializarSemaforo();
+
+sem_t* semaforo;
 
 using namespace std;
 
@@ -123,11 +127,11 @@ void comunicacion_fifos2(){
 	//Creamos dos fifos para enviar y recibir mensajes
 	mkfifo(SEND_FIFO, 0666);
 	mkfifo(RECEIVE_FIFO, 0666);
-    
+    inicializarSemaforo();
+	sem_wait(semaforo);
 	while(1)
 	{
         ofstream fifo1(SEND_FIFO);
-        ifstream fifo2(RECEIVE_FIFO);
 		char tmp[255] = "";
 		int ban = 0;
 		fflush(stdout);
@@ -143,7 +147,6 @@ void comunicacion_fifos2(){
 		{
             fifo1 << string(tmp) << ends;
 			fifo1.close();
-			fifo2.close();
 			ban = 1;
 		}
 
@@ -182,24 +185,34 @@ void comunicacion_fifos2(){
 		if(strcmp(tmp, "QUIT") == 0)
 		{	
 			ban = 1;
-
 			fifo1.close();
-        	fifo2.close();
+			sem_close(semaforo);
+			sem_unlink("clienteFIFO");
             system("clear");
 			kill(0, SIGTERM);
 		}
 		if(ban == 1){
 			sleep(2);
+			ifstream fifo2(RECEIVE_FIFO);
 			string buffer;
-			cout << "paso por aca 184" << endl;
 			ban = 0;
 			while(getline(fifo2,buffer))
                 cout << buffer << endl;
+			fifo2.clear();
+			fifo2.close();
 			fflush (stdout); 
-            fifo2.clear();
 		}
 		else
 			printf("Error, accion erronea.\nVuelva a intentarlo.\n");
-        fifo2.close();
 	}
+}
+
+void inicializarSemaforo(){
+    semaforo = sem_open("clienteFIFO",O_CREAT,0600,1);
+    
+    // Si dicho semaforo vale 0 en ese momento significa que ya hay otra instancia de semaforo ejecutando por lo que cerramos el proceso.
+    int valorSemServi = 85;
+    sem_getvalue(semaforo,&valorSemServi);
+    if(valorSemServi == 0)
+        exit(EXIT_FAILURE);
 }
