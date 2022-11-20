@@ -135,7 +135,8 @@ void comunicacion_fifos2(FILE * arch)
 						string tmp_nombreProd(p);
 						p = strtok(NULL,";");
 						string tmp_precio(p);
-                        fifo2 << tmp_id + " " + tmp_nombreProd + " " + tmp_precio + "\n" << ends;
+						string respuesta = tmp_id + " " + tmp_nombreProd + " " + tmp_precio;
+                        fifo2 << respuesta << endl;
 					}
 					primerPase++;
 				}
@@ -160,13 +161,18 @@ void comunicacion_fifos2(FILE * arch)
                         if(linea[longitudLinea-3]=='0' && linea[longitudLinea-4]==';'){
                             //write(send_fd, linea, strlen(linea));
 							char *p = strtok(linea,";");
-							string tmp_id(p);
+							char res[100];
+							strcpy(res,p);
+							string tmp_id(res);
 							p = strtok(NULL,";");
-							string tmp_nombreProd(p);
+							strcpy(res,p);
+							string tmp_nombreProd(res);
 							p = strtok(NULL,";");
 							p = strtok(NULL,";");
-							string tmp_costo(p);
-                        	fifo2 << tmp_id + " " + tmp_nombreProd + " " + tmp_costo + "\n" << ends;
+							strcpy(res,p);
+							string tmp_costo(res);
+							string respuesta = tmp_id + " " + tmp_nombreProd + " " + tmp_costo;
+                        	fifo2 << respuesta << endl;
                         }
 					}
 					primerPase++;
@@ -220,7 +226,7 @@ void comunicacion_fifos2(FILE * arch)
 					primerPase++;
 				}
 				string aux(mandar);
-                fifo2 << "$" + aux + "\n" << ends;
+                fifo2 << "$" + aux << ends;
                 //write(send_fd, "$", 1);
                 //write(send_fd, mandar, strlen(mandar));
 				//write(send_fd, "\n", 1);
@@ -269,16 +275,7 @@ void comunicacion_fifos2(FILE * arch)
 						}
 						
 						if(strcmp(linea, subtext)==0)
-						{
                             fifo2 << string(linea) + " " + string(nombre) + " " + string(unidades) + "u\n" << ends;
-							//write(send_fd, linea, strlen(linea));
-							//write(send_fd, " ", 1);
-							//write(send_fd, nombre, strlen(nombre));
-							//write(send_fd, " ", 1);
-							//write(send_fd, unidades, strlen(unidades));
-							//write(send_fd, "u", 1);
-							//write(send_fd, "\n", 1);
-						}
 					}
 					primerPase++;
 				}

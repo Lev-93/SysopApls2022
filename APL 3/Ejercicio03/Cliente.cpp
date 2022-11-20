@@ -193,7 +193,6 @@ void comunicacion_fifos2(){
 			string buffer;
 			cout << "paso por aca 184" << endl;
 			ban = 0;
-            while(sizeof(fifo2) == 0){}
 			while(getline(fifo2,buffer))
                 cout << buffer << endl;
 			fflush (stdout); 
