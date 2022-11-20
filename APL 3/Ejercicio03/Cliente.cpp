@@ -77,7 +77,7 @@ void ayuda()
                                 printf("\nNombre del script: cliente.cpp");
                                 printf("\nNúmero de ejercicio: 3");
                                 printf("\nTrabajo Práctico: 3");
-                                printf("\nEntrega: Primer entrega");
+                                printf("\nEntrega: Primera reentrega");
 								printf("\n\n==============================================================\n");
 
                                 printf("\n------------------------ Integrantes ------------------------\n\n");
@@ -111,12 +111,11 @@ void ayuda()
                                 break;
                         case 5:
                                 printf("\n##EJEMPLO DE FUNCIONAMIENTO##\n");
-								printf("En una terminal correr el siguiente comando:\n");
-                                printf("./cliente\n");
-                                printf("Abrir otra terminal y correr el siguiente comando de ejemplo:\n");
 								printf("./servidor productos.txt\n");
+								printf("./cliente\n");
 								printf("En caso de que no se encuentren los archivos ejecutables, se debe compilar y linkeditar arrojando el siguiente comando por consola:\n");
 								printf("make\n");
+								printf("Para eliminar los ejecutables ejecutar 'make clean'\n");
                                 break;
            }
         }
