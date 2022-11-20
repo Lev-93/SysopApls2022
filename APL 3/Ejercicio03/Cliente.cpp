@@ -1,3 +1,5 @@
+#include <iostream>
+#include <fstream>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -7,13 +9,42 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <ctype.h>
- 
+#include <string>
 
-char sender_name[] = "CLIENTE";
-char receiver_name[] = "SERVIDOR";
 #define SEND_FIFO "FIFO1"
 #define RECEIVE_FIFO "FIFO2"
 
+void ayuda();
+void comunicacion_fifos2();
+
+using namespace std;
+
+int main(int argc, char * argv[])
+{
+	//Ignora el ctrl+C
+	signal(SIGINT,SIG_IGN);
+
+	//Se validan los parámetros
+	if(argc == 2 && ( (strcmp(argv[1], "-h")==0) || (strcmp(argv[1], "--help")==0) ))
+	{
+		ayuda();
+		return EXIT_FAILURE;
+	}
+
+	if(argc >= 2)
+	{
+		printf("Error en el ingreso de parámetros.\n");
+		printf("Ingrese \"-h\" o \"--help\" como único parámetro para obtener la ayuda.\n");
+		return EXIT_FAILURE;
+	}
+
+	//comunicacion_fifos();
+	comunicacion_fifos2();
+	unlink(SEND_FIFO);
+	unlink(RECEIVE_FIFO);	
+
+	return EXIT_SUCCESS;
+}
 
 void ayuda()
 {
@@ -88,125 +119,88 @@ void ayuda()
         while(num != 6);
 }
 
-
-void comunicacion_fifos()
-{	
-	pid_t pid;
-	 
+void comunicacion_fifos2(){
 	//Creamos dos fifos para enviar y recibir mensajes
 	mkfifo(SEND_FIFO, 0666);
 	mkfifo(RECEIVE_FIFO, 0666);
- 
-	pid = fork();
-
-	if(pid < 0)
+    
+	while(1)
 	{
-		perror("fork");
-	}
-
-	else if (pid == 0) // recibir información
-	{
-		int receive_fd;
-		receive_fd = open(RECEIVE_FIFO, O_RDONLY);
-
-		while(1)
+        ofstream fifo1(SEND_FIFO);
+        ifstream fifo2(RECEIVE_FIFO);
+		char tmp[255] = "";
+		int ban = 0;
+		fflush(stdout);
+		fgets(tmp, sizeof(tmp), stdin);
+			
+		tmp [strlen (tmp) -1] = 0; // cambia el \n de fgets a \0
+			
+		for (int i = 0; i < strlen(tmp); i++) {
+			tmp[i] = toupper(tmp[i]);
+		}
+			
+		if(strcmp(tmp, "LIST") == 0 || strcmp(tmp, "SIN_STOCK") == 0 || strcmp(tmp, "QUIT")==0)
 		{
-			char tmp[255] = "";
-			int ret;
- 
-			ret = read(receive_fd, tmp, sizeof(tmp));
-			if(ret == 0)
-			{
-				break;
+            fifo1 << string(tmp) << ends;
+			fifo1.close();
+			fifo2.close();
+			ban = 1;
+		}
+
+		if(tmp[0]=='R' && tmp[1]=='E' &&tmp[2]=='P' && tmp[3]=='O' && tmp[4]==' ')
+		{
+			char aux[249];
+			ban = 1;
+    		strncpy(aux, &tmp[5], strlen(tmp)-1 );
+
+			int num = atoi(aux);
+			
+			if(num > 0){
+				fifo1 << string(tmp) << ends;
+				fifo1.close();
 			}
-			printf("\r\e[K%s:\n%s\n", receiver_name, tmp);
-			printf("%s: ", sender_name);
+			else{
+				printf("Error, la cantidad debe ser mayor o igual a cero.\n");
+				printf("Consulte la ayuda con ./cliente -h ó ./cliente --help\n");
+			}				
+		}
+		if (tmp[0]=='S' && tmp[1]=='T' &&tmp[2]=='O' && tmp[3]=='C' && tmp[4]=='K' && tmp[5]==' ')
+		{
+   			char aux[249];
+			ban = 1;
+   			strncpy(aux, &tmp[6], strlen(tmp)-1 );
+			int num = atoi(aux);
+				if(num >0){
+					fifo1 << string(tmp) << ends;
+					fifo1.close();
+				}
+			else{
+				printf("Error, el ID del producto es mayor o igual a cero.\n");
+				printf("Consulte la ayuda con ./cliente -h ó ./cliente --help\n");
+			}								
+		}
+		if(strcmp(tmp, "QUIT") == 0)
+		{	
+			ban = 1;
+
+			fifo1.close();
+        	fifo2.close();
+            system("clear");
+			kill(0, SIGTERM);
+		}
+		if(ban == 1){
+			sleep(2);
+			string buffer;
+			cout << "paso por aca 184" << endl;
+			ban = 0;
+            while(sizeof(fifo2) == 0){}
+			while(getline(fifo2,buffer))
+                cout << buffer << endl;
 			fflush (stdout); 
+            fifo2.clear();
 		}
-	}
-
-	else if (pid > 0) // enviar mensaje
-	{
-		int send_fd;
-		send_fd = open(SEND_FIFO, O_WRONLY);
-		
-		while(1)
-		{
-			char tmp[255] = "";
- 
-			printf("%s: ", sender_name);
-			fflush(stdout);
-			fgets(tmp, sizeof(tmp), stdin);
-			
-			tmp [strlen (tmp) -1] = 0; // cambia el \n de fgets a \0
-			
-			for (int i = 0; i < strlen(tmp); i++) {
-				tmp[i] = toupper(tmp[i]);
-			}
-			
-			if(strcmp(tmp, "LIST") == 0 || strcmp(tmp, "SIN_STOCK") == 0 || strcmp(tmp, "QUIT")==0)
-			{
-				write(send_fd, tmp, strlen(tmp));
-			}
-
-			if(tmp[0]=='R' && tmp[1]=='E' &&tmp[2]=='P' && tmp[3]=='O' && tmp[4]==' ')
-			{
-				char aux[249];
-
-    			strncpy(aux, &tmp[5], strlen(tmp)-1 );
-
-				int num = atoi(aux);
-			
-				if(num > 0)
-					write(send_fd, tmp, strlen(tmp));				
-			}
-
-			if (tmp[0]=='S' && tmp[1]=='T' &&tmp[2]=='O' && tmp[3]=='C' && tmp[4]=='K' && tmp[5]==' ')
-			{
-    			char aux[249];
-
-    			strncpy(aux, &tmp[6], strlen(tmp)-1 );
-				int num = atoi(aux);
-
-				if(num >0)
-					write(send_fd, tmp, strlen(tmp));								
-			}
-
-			if(strcmp(tmp, "QUIT") == 0)
-			{
-                system("clear");
-				kill(0, SIGTERM);
-			}
-		}
+		else
+			printf("Error, accion erronea.\nVuelva a intentarlo.\n");
+        fifo2.close();
 	}
 }
- 
-int main(int argc, char * argv[])
-{
-	//Ignora el ctrl+C
-	signal(SIGINT,SIG_IGN);
-
-	//Se validan los parámetros
-	if(argc == 2 && ( (strcmp(argv[1], "-h")==0) || (strcmp(argv[1], "--help")==0) ))
-	{
-		ayuda();
-		return EXIT_FAILURE;
-	}
-
-	if(argc >= 2)
-	{
-		printf("Error en el ingreso de parámetros.\n");
-		printf("Ingrese \"-h\" o \"--help\" como único parámetro para obtener la ayuda.\n");
-		return EXIT_FAILURE;
-	}
-
-	comunicacion_fifos();
-
-	unlink(SEND_FIFO);
-	unlink(RECEIVE_FIFO);	
-
-	return EXIT_SUCCESS;
-}
-
-
-
