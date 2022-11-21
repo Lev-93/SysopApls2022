@@ -37,10 +37,9 @@ typedef struct {
     int Socket_Escucha;
 }dato;
 
-sem_t* semaforos[2];
+sem_t* semaforos[1];
 /*
     0 - Servidor (solo puede haber 1) se inicia en 1 y rapidamente se ocupa por el primer demonio. se liberara cuando el servidor demonio sea detenido
-    1 - Recurso, (solo puede acceder un proceso por vez) se inicia en 1
 */
 
 using namespace std;
@@ -263,9 +262,7 @@ string realizar_Actividades(const char mensaje[]){
 
 void eliminar_Sem(){
     sem_close(semaforos[0]);
-    sem_close(semaforos[1]);
     sem_unlink("servidorSocket");
-    sem_unlink("Recurso");
 }
 
 void inicializarSemaforos(){
@@ -276,7 +273,6 @@ void inicializarSemaforos(){
     sem_getvalue(semaforos[0],&valorSemServi);
     if(valorSemServi == 0)
         exit(EXIT_FAILURE);
-    semaforos[1] = sem_open("Recurso",O_CREAT,0600,3);
 }
 
 void liberar_Recursos(int signum){
