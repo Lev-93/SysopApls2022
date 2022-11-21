@@ -190,6 +190,7 @@ bool Ayuda(const char *cad)
         cout << "Consulta, si se quiere saber sobre un gato en específico o todos aquellos gatos que han sido rescatados" << endl;
         cout << "La manera de saber sobre un gato en específico es: ./Cliente CONSULTA [nombre del gato]" << endl;
         cout << "La manera de saber sobre todos los gatos que han sido rescatados es: ./Cliente CONSULTA" << endl;
+        cout << "Para finalizar el proceso servidor simplemente basta con ejecutar ./Disparador" << endl;
         return true;
     }
     return false;
@@ -205,13 +206,9 @@ int leer_rescatados(const char path[20]){
         cout << "no se pudo abrir el archivo" << endl;
         return -1;
     }
-    while(!archivo.eof()){
-        getline(archivo,texto);
-        strcpy(gatito,texto.c_str());
-        if(strcmp(gatito,"") == 0)
-            break;        
+    cout << "Gatos rescatados" << endl;
+    while(getline(archivo,texto))
         cout << texto << endl;
-    }
     archivo.close();
     remove(path);
     return 0;

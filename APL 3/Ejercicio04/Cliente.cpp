@@ -133,7 +133,7 @@ int main(int argc, char *argv[]){
             // V(MC)
         }
         else{
-            cout << "Error, cantidad de parametros erronea junto a la acción alta.";
+            cout << "Error, cantidad de parametros erronea junto a la acción alta." << endl;
             sem_post(semaforos[3]);
             //V(TC)
             sem_post(semaforos[1]);
@@ -177,7 +177,7 @@ int main(int argc, char *argv[]){
             // V(MC)
         }
         else{
-            cout << "Error, cantidad de parametros erronea junto a la acción baja";
+            cout << "Error, cantidad de parametros erronea junto a la acción baja" << endl;
             sem_post(semaforos[3]);
             //V(TC)
             sem_post(semaforos[1]);
@@ -269,7 +269,7 @@ int main(int argc, char *argv[]){
                 // V(MC)
             }
             else{
-                cout << "Error, cantidad de parametros erronea junto a la acción consultar";
+                cout << "Error, cantidad de parametros erronea junto a la acción consultar" << endl;
                 sem_post(semaforos[3]);
                 //V(TC)
                 sem_post(semaforos[1]);
@@ -299,6 +299,7 @@ bool Ayuda(const char *cad)
         cout << "Consulta, si se quiere saber sobre un gato en específico o todos aquellos gatos que han sido rescatados" << endl;
         cout << "La manera de saber sobre un gato en específico es: ./Cliente CONSULTA [nombre del gato]" << endl;
         cout << "La manera de saber sobre todos los gatos que han sido rescatados es: ./Cliente CONSULTA" << endl;
+        cout << "Para finalizar el proceso servidor simplemente basta con ejecutar ./Disparador" << endl;
         return true;
     }
     return false;
@@ -362,6 +363,7 @@ int leer_rescatados(const char path[20]){
         cout << "no se pudo abrir el archivo" << endl;
         return -1;
     }
+    cout << "Gatos rescatados" << endl;
     while(getline(archivo,texto))
         cout << texto << endl;
     archivo.close();

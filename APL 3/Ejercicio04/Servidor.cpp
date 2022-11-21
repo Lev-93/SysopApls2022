@@ -318,6 +318,7 @@ bool Ayuda(const char *cad)
         cout << "Baja, si dicho gato fue adoptado, modifica el estado de dicho gato en el archivo" << endl;
         cout << "Consulta, traera algún gato particular o listara todos los gatos rescatados." << endl;
         cout << "solo se ejecuta de la siguiente manera ./Servidor" << endl;
+        cout << "Para finalizar el proceso servidor simplemente basta con ejecutar ./Disparador" << endl;
         return true;
     }
     return false;
