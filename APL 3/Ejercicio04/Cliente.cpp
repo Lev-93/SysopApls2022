@@ -357,19 +357,13 @@ int leer_rescatados(const char path[20]){
     ifstream archivo;
     string texto;
     string tmp_path(path);
-    char gatito[100];
     archivo.open(tmp_path,ios::in);
     if(archivo.fail()){
         cout << "no se pudo abrir el archivo" << endl;
         return -1;
     }
-    while(!archivo.eof()){
-        getline(archivo,texto);
-        strcpy(gatito,texto.c_str());
-        if(strcmp(gatito,"") == 0)
-            break;        
+    while(getline(archivo,texto))
         cout << texto << endl;
-    }
     archivo.close();
     remove(path);
     return 0;

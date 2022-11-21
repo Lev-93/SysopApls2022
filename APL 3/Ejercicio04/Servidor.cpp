@@ -86,6 +86,10 @@ int main(int argc, char *argv[]){
             Ayuda(argv[1]);
             exit(EXIT_SUCCESS);
         }
+        else{
+            cout << "Error, el servidor no debe recibir parametros" << endl;
+            exit(EXIT_FAILURE);
+        }
     }
 
     pid_t pid, sid;
