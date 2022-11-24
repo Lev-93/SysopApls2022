@@ -217,7 +217,6 @@ void comunicacion_fifos2(){
 			exit(EXIT_SUCCESS);
 		}
 		if(ban == 1){
-			sleep(2);
 			ifstream fifo2(RECEIVE_FIFO);
 			string buffer;
 			ban = 0;
