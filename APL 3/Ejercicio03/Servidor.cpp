@@ -8,22 +8,38 @@
 #include <string.h>
 #include <signal.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
+#include <ctype.h>
 #include <string>
 #include <semaphore.h>
+#include <sys/mman.h>
+#include <ctime>
+#include <cerrno>
+#include <linux/fs.h>
+#include <sys/param.h>
 
 #define SEND_FIFO "FIFO2"
 #define RECEIVE_FIFO "FIFO1"
+#define MC "EJ3"
 
 void swap(char *, char *);
 char* reverse(char*, int, int);
 char* itoa(int, char*, int);
-void comunicacion_fifos2(FILE*);
+void comunicacion_fifos2(const char*);
 void inicializarSemaforo();
 void ayuda();
+FILE* abrir_Archivo(const char*);
+void liberar_recursos(int);
 
-sem_t* semaforo;
+sem_t* semaforo[2];
+/*
+	0 - Servidor
+	1 - Cliente
+*/
+
+typedef struct{
+	int pidServidor;
+	int pidCliente;
+}dato;
 
 using namespace std;
  
@@ -31,6 +47,7 @@ int main(int argc, char * argv[])
 {
 	//Ignora el ctrl+C
 	signal(SIGINT,SIG_IGN);
+	signal(SIGTERM,liberar_recursos);
 
 	if(argc == 2 && ( (strcmp(argv[1], "-h")==0) || (strcmp(argv[1], "--help")==0) ))
 	{
@@ -38,8 +55,6 @@ int main(int argc, char * argv[])
 		return EXIT_FAILURE;
 	}
 
-	FILE * arch;
-	arch = fopen(argv[1], "rt");
 	if(argc != 2)
 	{
 		printf("Cantidad incorrecta de parámetros.\n");
@@ -47,14 +62,17 @@ int main(int argc, char * argv[])
 		printf("./cliente --help\n");
 		return EXIT_FAILURE;
 	}
+	FILE * arch;
+	arch = fopen(argv[1], "rt");
 	if (!arch)
-		{
-			printf("No existe archivo.\n");
-			return EXIT_FAILURE;
-		}
+	{
+		printf("No existe archivo.\n");
+		return EXIT_FAILURE;
+	}
+	fclose(arch);
 		
 	//comunicacion_fifos(arch);
-	comunicacion_fifos2(arch);
+	comunicacion_fifos2(argv[1]);
 	unlink(SEND_FIFO);
 	unlink(RECEIVE_FIFO);
 
@@ -100,7 +118,7 @@ char * itoa(int value, char* buffer, int base)
     return reverse(buffer, 0, i - 1);
 }
 
-void comunicacion_fifos2(FILE * arch)
+void comunicacion_fifos2(const char *path)
 {    
 	pid_t pid;	
 	pid = fork();
@@ -110,10 +128,19 @@ void comunicacion_fifos2(FILE * arch)
 		perror("fork");
 	}
 	
-	else if (pid == 0) // recibir información
+	else if (pid == 0) 
 	{
 		inicializarSemaforo();
-		sem_wait(semaforo);
+		sem_wait(semaforo[0]);
+
+		int idAux = shm_open(MC, O_CREAT | O_RDWR, 0600);
+    	ftruncate(idAux,sizeof(dato));
+    	dato *pidA = (dato*)mmap(NULL, sizeof(dato), PROT_READ | PROT_WRITE, MAP_SHARED, idAux,0);
+    	close(idAux);
+    	pidA->pidServidor = getpid();
+    	munmap(pidA,sizeof(dato));
+
+
         mkfifo(SEND_FIFO, 0666);
 	    mkfifo(RECEIVE_FIFO, 0666);
 
@@ -133,6 +160,8 @@ void comunicacion_fifos2(FILE * arch)
 				char linea[100];
 				int primerPase=0;
 
+				FILE *arch = abrir_Archivo(path);
+
 				while(fgets(linea, sizeof(linea), arch))
 				{
 					if (primerPase > 0){
@@ -146,7 +175,7 @@ void comunicacion_fifos2(FILE * arch)
 					}
 					primerPase++;
 				}
-				fseek(arch, 0L, SEEK_SET);
+				fclose(arch);
                 fifo2.close();			
 			}
 
@@ -156,6 +185,8 @@ void comunicacion_fifos2(FILE * arch)
 				
 				char linea[100];
 				int primerPase = 0;
+
+				FILE *arch = abrir_Archivo(path);
 
 				while(fgets(linea, sizeof(linea), arch))
 				{
@@ -183,7 +214,8 @@ void comunicacion_fifos2(FILE * arch)
 					primerPase++;
 				}
                 fifo2.close();
-				fseek(arch, 0L, SEEK_SET);
+				//fseek(arch, 0L, SEEK_SET);
+				fclose(arch);
 			}
 
 
@@ -197,7 +229,7 @@ void comunicacion_fifos2(FILE * arch)
 				int primerPase=0;
 				
 				char mandar[20];
-                
+                FILE *arch = abrir_Archivo(path);
 				while(fgets(linea, sizeof(linea), arch))
 				{
 					if (primerPase>0){
@@ -236,7 +268,8 @@ void comunicacion_fifos2(FILE * arch)
                 //write(send_fd, mandar, strlen(mandar));
 				//write(send_fd, "\n", 1);
                 fifo2.close();
-				fseek(arch, 0L, SEEK_SET);										
+				fclose(arch);
+				//fseek(arch, 0L, SEEK_SET);										
 			}
 
 
@@ -257,7 +290,8 @@ void comunicacion_fifos2(FILE * arch)
                                 
 				char mandar[20];
                 char unidades[10]= "";
-						
+
+				FILE *arch = abrir_Archivo(path);
 				while(fgets(linea, sizeof(linea), arch))
 				{
 					if (primerPase>0){
@@ -285,16 +319,18 @@ void comunicacion_fifos2(FILE * arch)
 					primerPase++;
 				}
                 fifo2.close();
-				fseek(arch, 0L, SEEK_SET);										
+				fclose(arch);
+				//fseek(arch, 0L, SEEK_SET);										
 			}
 
 
 			if(strcmp(tmp, "QUIT")==0)
 			{
-				fclose(arch);
-                system("clear");
-				sem_close(semaforo);
+				sem_close(semaforo[0]);
+				sem_close(semaforo[1]);
 				sem_unlink("servidorFIFO");
+				sem_unlink("clienteFIFO");
+				shm_unlink("EJ3");
 				unlink(SEND_FIFO);
 				unlink(RECEIVE_FIFO);
 				exit(EXIT_SUCCESS);
@@ -307,13 +343,13 @@ void comunicacion_fifos2(FILE * arch)
 }
 
 void inicializarSemaforo(){
-    semaforo = sem_open("servidorFIFO",O_CREAT,0600,1);
-    
+    semaforo[0] = sem_open("servidorFIFO",O_CREAT,0600,1);
     // Si dicho semaforo vale 0 en ese momento significa que ya hay otra instancia de semaforo ejecutando por lo que cerramos el proceso.
     int valorSemServi = 85;
-    sem_getvalue(semaforo,&valorSemServi);
+    sem_getvalue(semaforo[0],&valorSemServi);
     if(valorSemServi == 0)
         exit(EXIT_FAILURE);
+	semaforo[1] = sem_open("clienteFIFO",O_CREAT,0600,1);
 }
 
 void ayuda()
@@ -386,4 +422,44 @@ void ayuda()
            }
         }
         while(num != 6);
+}
+
+FILE* abrir_Archivo(const char *path){
+	FILE * arch;
+	arch = fopen(path, "rt");
+	if (!arch)
+	{
+		printf("No existe archivo.\n");
+		return NULL;
+	}
+	return arch;
+}
+
+void liberar_recursos(int signum){
+	
+	int valorCliente = 12;
+	sem_getvalue(semaforo[1],&valorCliente);
+	if(valorCliente == 1){	//en caso de que el cliente no halla sido inicializado
+		sem_close(semaforo[0]);
+		sem_close(semaforo[1]);
+		sem_unlink("servidorFIFO");
+		sem_unlink("clienteFIFO");
+		shm_unlink("EJ3");
+		unlink(SEND_FIFO);
+		unlink(RECEIVE_FIFO);
+	}
+	else{
+		sem_post(semaforo[0]);
+		sem_close(semaforo[0]);
+		sem_close(semaforo[1]);
+		//unlink(SEND_FIFO);
+		//unlink(RECEIVE_FIFO);
+		int idAux = shm_open(MC, 0100 | 02, 0600);
+    	dato *pidA = (dato*)mmap(NULL, sizeof(dato), PROT_READ | PROT_WRITE, MAP_SHARED, idAux,0);
+    	close(idAux);
+    	int pidCliente = pidA->pidCliente;
+    	munmap(pidA,sizeof(dato));
+    	kill(pidCliente,SIGTERM);
+	}
+	exit(EXIT_SUCCESS);
 }

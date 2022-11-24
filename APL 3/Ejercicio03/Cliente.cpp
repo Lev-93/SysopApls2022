@@ -11,15 +11,32 @@
 #include <ctype.h>
 #include <string>
 #include <semaphore.h>
+#include <sys/mman.h>
+#include <ctime>
+#include <cerrno>
+#include <linux/fs.h>
+#include <sys/param.h>
+
 
 #define SEND_FIFO "FIFO1"
 #define RECEIVE_FIFO "FIFO2"
+#define MC "EJ3"
 
 void ayuda();
 void comunicacion_fifos2();
 void inicializarSemaforo();
+void liberar_recursos(int);
 
-sem_t* semaforo;
+sem_t* semaforo[2];
+/*
+	0 - Servidor
+	1 - Cliente
+*/
+
+typedef struct{
+	int pidServidor;
+	int pidCliente;
+}dato;
 
 using namespace std;
 
@@ -27,7 +44,7 @@ int main(int argc, char * argv[])
 {
 	//Ignora el ctrl+C
 	signal(SIGINT,SIG_IGN);
-
+	signal(SIGTERM,liberar_recursos);
 	//Se validan los parámetros
 	if(argc == 2 && ( (strcmp(argv[1], "-h")==0) || (strcmp(argv[1], "--help")==0) ))
 	{
@@ -124,10 +141,19 @@ void ayuda()
 
 void comunicacion_fifos2(){
 	//Creamos dos fifos para enviar y recibir mensajes
+
+	inicializarSemaforo();
+	sem_wait(semaforo[1]);
+
+	int idAux = shm_open(MC, O_CREAT | O_RDWR, 0600);
+    dato *pidA = (dato*)mmap(NULL, sizeof(dato), PROT_READ | PROT_WRITE, MAP_SHARED, idAux,0);
+    close(idAux);
+    pidA->pidCliente = getpid();
+    munmap(pidA,sizeof(dato));
+
 	mkfifo(SEND_FIFO, 0666);
 	mkfifo(RECEIVE_FIFO, 0666);
-    inicializarSemaforo();
-	sem_wait(semaforo);
+	
 	while(1)
 	{
         ofstream fifo1(SEND_FIFO);
@@ -142,7 +168,7 @@ void comunicacion_fifos2(){
 			tmp[i] = toupper(tmp[i]);
 		}
 			
-		if(strcmp(tmp, "LIST") == 0 || strcmp(tmp, "SIN_STOCK") == 0 || strcmp(tmp, "QUIT")==0)
+		if(strcmp(tmp, "LIST") == 0 || strcmp(tmp, "SIN_STOCK") == 0)
 		{
             fifo1 << string(tmp) << ends;
 			fifo1.close();
@@ -183,12 +209,12 @@ void comunicacion_fifos2(){
 		}
 		if(strcmp(tmp, "QUIT") == 0)
 		{	
-			ban = 1;
+			fifo1 << string(tmp) << ends;
 			fifo1.close();
-			sem_close(semaforo);
-			sem_unlink("clienteFIFO");
-            system("clear");
-			kill(0, SIGTERM);
+			ban = 1;
+			sem_close(semaforo[0]);
+			sem_close(semaforo[1]);
+			exit(EXIT_SUCCESS);
 		}
 		if(ban == 1){
 			sleep(2);
@@ -207,11 +233,48 @@ void comunicacion_fifos2(){
 }
 
 void inicializarSemaforo(){
-    semaforo = sem_open("clienteFIFO",O_CREAT,0600,1);
-    
+	semaforo[0] = sem_open("servidorFIFO",O_CREAT,0600,1);
+	int valorSemServi = 12;
+	sem_getvalue(semaforo[0],&valorSemServi);
+	if(valorSemServi == 1){
+		printf("El proceso servidor aun no ha sido inicializado\n");
+		sem_close(semaforo[0]);
+		exit(EXIT_FAILURE);
+	}
+    semaforo[1] = sem_open("clienteFIFO",O_CREAT,0600,1);
     // Si dicho semaforo vale 0 en ese momento significa que ya hay otra instancia de semaforo ejecutando por lo que cerramos el proceso.
-    int valorSemServi = 85;
-    sem_getvalue(semaforo,&valorSemServi);
-    if(valorSemServi == 0)
+    int valorSemCliente = 85;
+    sem_getvalue(semaforo[1],&valorSemCliente);
+    if(valorSemCliente == 0){
+		printf("Error, ya hay un cliente ejecutando...\n");
+		sem_close(semaforo[0]);
+		sem_close(semaforo[1]);
         exit(EXIT_FAILURE);
+	}
+}
+
+void liberar_recursos(int signum){
+	int valorServidor = 12;
+	sem_getvalue(semaforo[0],&valorServidor);
+	if(valorServidor == 1){ //significa que el servidor le envio la señal kill por lo tanto este mismo sera el encargado de eliminar todo recurso.
+		sem_close(semaforo[0]);
+		sem_close(semaforo[1]);
+		sem_unlink("clienteFIFO");
+		sem_unlink("servidorFIFO");
+		unlink(SEND_FIFO);
+		unlink(RECEIVE_FIFO);
+		shm_unlink("EJ3");
+		exit(EXIT_SUCCESS);
+	}else{	//significa que la señal enviada fue desde afuera, aqui sabemos que hay un servidor en ejecucion por lo que directamente le enviamos una señal para destruirlo.
+		sem_post(semaforo[1]);
+		sem_close(semaforo[0]);
+		sem_close(semaforo[1]);
+		int idAux = shm_open(MC, 0100 | 02, 0600);
+    	dato *pidA = (dato*)mmap(NULL, sizeof(dato), PROT_READ | PROT_WRITE, MAP_SHARED, idAux,0);
+    	close(idAux);
+    	int pidServidor = pidA->pidServidor;
+    	munmap(pidA,sizeof(dato));
+    	kill(pidServidor,SIGTERM);
+		exit(EXIT_SUCCESS);
+	}
 }

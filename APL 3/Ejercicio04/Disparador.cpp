@@ -20,7 +20,7 @@ int main(){
     int idAux = shm_open(MemPid, 0100 | 02, 0600);
     int *pidA = (int*)mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED, idAux,0);
     close(idAux);
-    kill(*pidA,SIGUSR1);
+    int pid = *pidA;
     munmap(pidA,sizeof(int));
-    shm_unlink("pidServidor");
+    kill(pid,SIGUSR1);
 }

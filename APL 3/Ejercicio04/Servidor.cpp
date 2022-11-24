@@ -302,6 +302,7 @@ void liberar_Recursos(int signum){
     }
     eliminar_Sem();
     shm_unlink("miMmemoria");
+    shm_unlink("pidServidor");
     remove("gatos.txt");
     remove("salida.txt");
     exit(EXIT_SUCCESS);
