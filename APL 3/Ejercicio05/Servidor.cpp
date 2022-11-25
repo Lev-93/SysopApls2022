@@ -144,13 +144,20 @@ int main(int argc, char *argv[]){
 
     serverConfig.sin_family = AF_INET; //IPV4: 127.0.0.1
     //Direcciones desde la cuales estamos esperando conexiones.
-    //serverConfig.sin_addr.s_addr = htonl(INADDR_ANY);
-    serverConfig.sin_addr.s_addr = inet_addr(SERV_HOST_ADDR); 
-    //le pasamos el puerto
+    //INADDR_ANY, estoy escuchando conexiones desde cualquier IP
+    serverConfig.sin_addr.s_addr = htonl(INADDR_ANY);
+    //serverConfig.sin_addr.s_addr = inet_addr(SERV_HOST_ADDR); 
+    //le pasamos el puerto, en este caso el 5000
     serverConfig.sin_port = htons(5000);
 
+    //htonl y htons son porque la estructura de configuración de los sockets utiliza un formato distinto en la manera en la que se guardan los numeros que se estan usando en C.
+    //estas funciones convierten esos numeros a un modo compatible con los sockets.
+
+    //Creamos el socket
+    //AF_INET: que sera IPV4
+    //SOCK_STREAM: esteremos usando el protocolo tcp.
     int socketEscucha = socket(AF_INET,SOCK_STREAM,0);
-    //nos va a linkear/relacionar nuestro socket con nuestra configración.
+    //nos va a linkear/relacionar nuestro socket con nuestra configuración.
     bind(socketEscucha,(struct sockaddr *)&serverConfig,sizeof(serverConfig));
 
     listen(socketEscucha,3); // hasta 3 clientes pueden estar encolados
