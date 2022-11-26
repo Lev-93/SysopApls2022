@@ -74,8 +74,16 @@ int main(int argc, char *argv[]){
             exit(EXIT_SUCCESS);
         }
         else{
-            cout << "Error, el servidor no debe recibir parametros" << endl;
-            exit(EXIT_FAILURE);
+            if((strcmp(argv[1],"-h") == 0 || strcmp(argv[1],"--help") == 0) && argc > 2){
+                cout << "Error, el servidor no debe recibir parametros junto con el de ayuda" << endl;
+                exit(EXIT_FAILURE);
+            }
+            else{
+                if((strcmp(argv[1],"-h") != 0 && strcmp(argv[1],"--help") != 0) && argc > 2){
+                    cout << "Error, el servidor no debe recibir parametros junto con el host" << endl;
+                    exit(EXIT_FAILURE);
+                }
+            }
         }
     }
 
@@ -148,19 +156,19 @@ int main(int argc, char *argv[]){
     serverConfig.sin_addr.s_addr = htonl(INADDR_ANY);
     //serverConfig.sin_addr.s_addr = inet_addr(SERV_HOST_ADDR); 
     //le pasamos el puerto, en este caso el 5000
-    serverConfig.sin_port = htons(5000);
-
+    serverConfig.sin_port = htons(atoi(argv[1]));
     //htonl y htons son porque la estructura de configuración de los sockets utiliza un formato distinto en la manera en la que se guardan los numeros que se estan usando en C.
     //estas funciones convierten esos numeros a un modo compatible con los sockets.
 
     //Creamos el socket
     //AF_INET: que sera IPV4
-    //SOCK_STREAM: esteremos usando el protocolo tcp.
+    //SOCK_STREAM: esteremos usando el protocolo tcp. 
     int socketEscucha = socket(AF_INET,SOCK_STREAM,0);
     //nos va a linkear/relacionar nuestro socket con nuestra configuración.
+    //bind asinga una direccion ip y un puerto al socket.
     bind(socketEscucha,(struct sockaddr *)&serverConfig,sizeof(serverConfig));
 
-    listen(socketEscucha,3); // hasta 3 clientes pueden estar encolados
+    listen(socketEscucha,3); // hasta 3 clientes pueden estar encolados, hace que el socket se vuelva pasivo. Es decir, quede escuchando.
 
     //creamos una memoria compartida especial donde guardaremos el pid del servidorSocket y el socket de escucha.
     int idAux = shm_open(MemPid, O_CREAT | O_RDWR, 0600);
