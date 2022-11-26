@@ -85,12 +85,16 @@ int main(int argc, char *argv[]){
                     exit(EXIT_FAILURE);
                 }
                 */
-                if((strcmp(argv[1],"-h") != 0 && strcmp(argv[1],"--help") != 0) && argc > 3){
+                if((strcmp(argv[1],"-h") != 0 && strcmp(argv[1],"--help") != 0) && argc != 3){
                     cout << "Error, el servidor no debe recibir parametros junto con el host" << endl;
                     exit(EXIT_FAILURE);
                 }
             }
         }
+    }
+    else{
+        cout << "Error, cantidad de parametros erroneo, para ayuda ejecute ./Servidor -h o ./Servidor --help" << endl;
+        exit(EXIT_FAILURE);
     }
 
     pid_t pid, sid;
