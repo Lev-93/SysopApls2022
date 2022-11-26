@@ -79,7 +79,13 @@ int main(int argc, char *argv[]){
                 exit(EXIT_FAILURE);
             }
             else{
+                /*
                 if((strcmp(argv[1],"-h") != 0 && strcmp(argv[1],"--help") != 0) && argc > 2){
+                    cout << "Error, el servidor no debe recibir parametros junto con el host" << endl;
+                    exit(EXIT_FAILURE);
+                }
+                */
+                if((strcmp(argv[1],"-h") != 0 && strcmp(argv[1],"--help") != 0) && argc > 3){
                     cout << "Error, el servidor no debe recibir parametros junto con el host" << endl;
                     exit(EXIT_FAILURE);
                 }
@@ -153,10 +159,19 @@ int main(int argc, char *argv[]){
     serverConfig.sin_family = AF_INET; //IPV4: 127.0.0.1
     //Direcciones desde la cuales estamos esperando conexiones.
     //INADDR_ANY, estoy escuchando conexiones desde cualquier IP
-    serverConfig.sin_addr.s_addr = htonl(INADDR_ANY);
     //serverConfig.sin_addr.s_addr = inet_addr(SERV_HOST_ADDR); 
+    //serverConfig.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    //en caso de pasar la ip del servidor descomentar esto.
+    serverConfig.sin_addr.s_addr = inet_addr(argv[1]);
+
+
     //le pasamos el puerto, en este caso el 5000
-    serverConfig.sin_port = htons(atoi(argv[1]));
+    //serverConfig.sin_port = htons(atoi(argv[1]));
+    
+    //en caso de pasar la ip del servidor descomentar esto.
+    serverConfig.sin_port = htons(atoi(argv[2]));
+
     //htonl y htons son porque la estructura de configuración de los sockets utiliza un formato distinto en la manera en la que se guardan los numeros que se estan usando en C.
     //estas funciones convierten esos numeros a un modo compatible con los sockets.
 
@@ -315,7 +330,7 @@ bool Ayuda(const char *cad)
         cout << "Alta, registra de poder, al gato en cuestion en el archivo." << endl;
         cout << "Baja, si dicho gato fue adoptado, modifica el estado de dicho gato en el archivo" << endl;
         cout << "Consulta, traera algún gato particular o listara todos los gatos rescatados." << endl;
-        cout << "solo se ejecuta de la siguiente manera ./Servidor" << endl;
+        cout << "solo se ejecuta de la siguiente manera ./Servidor [host servidor]" << endl;
         cout << "Para finalizar el proceso servidor simplemente basta con ejecutar ./Disparador" << endl;
         return true;
     }
