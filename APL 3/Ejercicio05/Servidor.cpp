@@ -86,7 +86,7 @@ int main(int argc, char *argv[]){
                 }
                 */
                 if((strcmp(argv[1],"-h") != 0 && strcmp(argv[1],"--help") != 0) && argc != 3){
-                    cout << "Error, el servidor no debe recibir parametros junto con el host" << endl;
+                    cout << "Error, el servidor debe recibir la ip y el host del servidor." << endl;
                     exit(EXIT_FAILURE);
                 }
             }
@@ -334,7 +334,7 @@ bool Ayuda(const char *cad)
         cout << "Alta, registra de poder, al gato en cuestion en el archivo." << endl;
         cout << "Baja, si dicho gato fue adoptado, modifica el estado de dicho gato en el archivo" << endl;
         cout << "Consulta, traera algún gato particular o listara todos los gatos rescatados." << endl;
-        cout << "solo se ejecuta de la siguiente manera ./Servidor [host servidor]" << endl;
+        cout << "solo se ejecuta de la siguiente manera ./Servidor [IP servidor] [host servidor]" << endl;
         cout << "Para finalizar el proceso servidor simplemente basta con ejecutar ./Disparador" << endl;
         return true;
     }
