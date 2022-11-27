@@ -27,10 +27,12 @@ void comunicacion_fifos2();
 void inicializarSemaforo();
 void liberar_recursos(int);
 
-sem_t* semaforo[2];
+sem_t* semaforo[4];
 /*
 	0 - Servidor
 	1 - Cliente
+	2 - Turno Servidor
+	3 - Turno Cliente
 */
 
 typedef struct{
@@ -49,10 +51,10 @@ int main(int argc, char * argv[])
 	if(argc == 2 && ( (strcmp(argv[1], "-h")==0) || (strcmp(argv[1], "--help")==0) ))
 	{
 		ayuda();
-		return EXIT_FAILURE;
+		return EXIT_SUCCESS;
 	}
 
-	if(argc >= 2)
+	if(argc > 1)
 	{
 		printf("Error en el ingreso de parámetros.\n");
 		printf("Ingrese \"-h\" o \"--help\" como único parámetro para obtener la ayuda.\n");
@@ -156,6 +158,7 @@ void comunicacion_fifos2(){
 	
 	while(1)
 	{
+		sem_wait(semaforo[3]);
         ofstream fifo1(SEND_FIFO);
 		char tmp[255] = "";
 		int ban = 0;
@@ -190,6 +193,7 @@ void comunicacion_fifos2(){
 			else{
 				printf("Error, la cantidad debe ser mayor o igual a cero.\n");
 				printf("Consulte la ayuda con ./cliente -h ó ./cliente --help\n");
+				ban = 0;
 			}				
 		}
 		if (tmp[0]=='S' && tmp[1]=='T' &&tmp[2]=='O' && tmp[3]=='C' && tmp[4]=='K' && tmp[5]==' ')
@@ -198,25 +202,30 @@ void comunicacion_fifos2(){
 			ban = 1;
    			strncpy(aux, &tmp[6], strlen(tmp)-1 );
 			int num = atoi(aux);
-				if(num >0){
-					fifo1 << string(tmp) << ends;
-					fifo1.close();
-				}
+			if(num >0){
+				fifo1 << string(tmp) << ends;
+				fifo1.close();
+			}
 			else{
 				printf("Error, el ID del producto es mayor o igual a cero.\n");
 				printf("Consulte la ayuda con ./cliente -h ó ./cliente --help\n");
+				ban = 0;
 			}								
 		}
 		if(strcmp(tmp, "QUIT") == 0)
 		{	
 			fifo1 << string(tmp) << ends;
 			fifo1.close();
-			ban = 1;
 			sem_close(semaforo[0]);
 			sem_close(semaforo[1]);
+			sem_close(semaforo[3]);
+			sem_post(semaforo[2]);	//le damos el turno al servidor antes de finalizar nuestro cliente.
+			sem_close(semaforo[2]);
 			exit(EXIT_SUCCESS);
 		}
 		if(ban == 1){
+			sem_post(semaforo[2]);	// le damos el turno al servidor
+			sem_wait(semaforo[3]);	// nos quedamos a la espera de que se libere el turno del cliente.
 			ifstream fifo2(RECEIVE_FIFO);
 			string buffer;
 			ban = 0;
@@ -228,6 +237,7 @@ void comunicacion_fifos2(){
 		}
 		else
 			printf("Error, accion erronea.\nVuelva a intentarlo.\n");
+		sem_post(semaforo[3]);
 	}
 }
 
@@ -250,6 +260,8 @@ void inicializarSemaforo(){
 		sem_close(semaforo[1]);
         exit(EXIT_FAILURE);
 	}
+	semaforo[2] = sem_open("turnoServFIFO",O_CREAT,0600,0);
+	semaforo[3] = sem_open("turnoClienteFIFO",O_CREAT,0600,0);
 }
 
 void liberar_recursos(int signum){
@@ -258,21 +270,30 @@ void liberar_recursos(int signum){
 	if(valorServidor == 1){ //significa que el servidor le envio la señal kill por lo tanto este mismo sera el encargado de eliminar todo recurso.
 		sem_close(semaforo[0]);
 		sem_close(semaforo[1]);
+		sem_close(semaforo[2]);
+		sem_close(semaforo[3]);
 		sem_unlink("clienteFIFO");
 		sem_unlink("servidorFIFO");
+		sem_unlink("turnoServFIFO");
+		sem_unlink("turnoClienteFIFO");
 		unlink(SEND_FIFO);
 		unlink(RECEIVE_FIFO);
 		shm_unlink("EJ3");
 		exit(EXIT_SUCCESS);
 	}else{	//significa que la señal enviada fue desde afuera, aqui sabemos que hay un servidor en ejecucion por lo que directamente le enviamos una señal para destruirlo.
-		sem_post(semaforo[1]);
 		sem_close(semaforo[0]);
-		sem_close(semaforo[1]);
+		sem_close(semaforo[2]);
+		sem_close(semaforo[3]);
 		int idAux = shm_open(MC, 0100 | 02, 0600);
     	dato *pidA = (dato*)mmap(NULL, sizeof(dato), PROT_READ | PROT_WRITE, MAP_SHARED, idAux,0);
     	close(idAux);
     	int pidServidor = pidA->pidServidor;
     	munmap(pidA,sizeof(dato));
+		int value = 12;
+		sem_getvalue(semaforo[1],&value);
+		if(value == 0)
+			sem_post(semaforo[1]);
+		sem_close(semaforo[1]);
     	kill(pidServidor,SIGTERM);
 		exit(EXIT_SUCCESS);
 	}

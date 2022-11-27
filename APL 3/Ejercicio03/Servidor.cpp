@@ -30,10 +30,12 @@ void ayuda();
 FILE* abrir_Archivo(const char*);
 void liberar_recursos(int);
 
-sem_t* semaforo[2];
+sem_t* semaforo[4];
 /*
 	0 - Servidor
 	1 - Cliente
+	2 - Turno Servidor
+	3 - Turno Cliente
 */
 
 typedef struct{
@@ -69,7 +71,18 @@ int main(int argc, char * argv[])
 		printf("No existe archivo.\n");
 		return EXIT_FAILURE;
 	}
+	char linea[200];
+	fgets(linea, sizeof(linea), arch);
+	int cont = 0;
+	while(fgets(linea, sizeof(linea), arch))
+		cont++;
+	if(cont == 0){
+		cout << "El archivo se encuentra vacío, pruebe con otro." << endl;
+		fclose(arch);
+		exit(EXIT_FAILURE);
+	}
 	fclose(arch);
+	fflush (stdout);
 		
 	//comunicacion_fifos(arch);
 	comunicacion_fifos2(argv[1]);
@@ -143,9 +156,11 @@ void comunicacion_fifos2(const char *path)
 
         mkfifo(SEND_FIFO, 0666);
 	    mkfifo(RECEIVE_FIFO, 0666);
-
+		
+		sem_post(semaforo[3]);
 		while(1)
-		{
+		{	
+			sem_wait(semaforo[2]);
             ifstream fifo1(RECEIVE_FIFO);
 			char tmp[255] = "";
 			string temp;
@@ -328,14 +343,19 @@ void comunicacion_fifos2(const char *path)
 			{
 				sem_close(semaforo[0]);
 				sem_close(semaforo[1]);
+				sem_close(semaforo[2]);
+				sem_close(semaforo[3]);
 				sem_unlink("servidorFIFO");
 				sem_unlink("clienteFIFO");
+				sem_unlink("turnoServFIFO");
+				sem_unlink("turnoClienteFIFO");
 				shm_unlink("EJ3");
 				unlink(SEND_FIFO);
 				unlink(RECEIVE_FIFO);
 				exit(EXIT_SUCCESS);
 			}
-			fflush (stdout); 
+			fflush (stdout);
+			sem_post(semaforo[3]);
 		}
 	}
 	else if (pid> 0)
@@ -350,6 +370,8 @@ void inicializarSemaforo(){
     if(valorSemServi == 0)
         exit(EXIT_FAILURE);
 	semaforo[1] = sem_open("clienteFIFO",O_CREAT,0600,1);
+	semaforo[2] = sem_open("turnoServFIFO",O_CREAT,0600,0);
+	semaforo[3] = sem_open("turnoClienteFIFO",O_CREAT,0600,0);
 }
 
 void ayuda()
@@ -439,26 +461,30 @@ void liberar_recursos(int signum){
 	
 	int valorCliente = 12;
 	sem_getvalue(semaforo[1],&valorCliente);
-	if(valorCliente == 1){	//en caso de que el cliente no halla sido inicializado
+	if(valorCliente == 1){	//en caso de que el cliente no halla sido inicializado o haya sido el original recibidor de la señal sigterm
 		sem_close(semaforo[0]);
 		sem_close(semaforo[1]);
+		sem_close(semaforo[2]);
+		sem_close(semaforo[3]);
 		sem_unlink("servidorFIFO");
 		sem_unlink("clienteFIFO");
+		sem_unlink("turnoServFIFO");
+		sem_unlink("turnoClienteFIFO");
 		shm_unlink("EJ3");
 		unlink(SEND_FIFO);
 		unlink(RECEIVE_FIFO);
 	}
 	else{
-		sem_post(semaforo[0]);
-		sem_close(semaforo[0]);
-		sem_close(semaforo[1]);
-		//unlink(SEND_FIFO);
-		//unlink(RECEIVE_FIFO);
 		int idAux = shm_open(MC, 0100 | 02, 0600);
     	dato *pidA = (dato*)mmap(NULL, sizeof(dato), PROT_READ | PROT_WRITE, MAP_SHARED, idAux,0);
     	close(idAux);
     	int pidCliente = pidA->pidCliente;
     	munmap(pidA,sizeof(dato));
+		sem_close(semaforo[1]);
+		sem_close(semaforo[2]);
+		sem_close(semaforo[3]);
+		sem_post(semaforo[0]);
+		sem_close(semaforo[0]);
     	kill(pidCliente,SIGTERM);
 	}
 	exit(EXIT_SUCCESS);
